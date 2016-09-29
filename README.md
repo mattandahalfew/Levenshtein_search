@@ -1,5 +1,5 @@
 # Levenshtein_search
-Search through a dictionary of words to find a set of words up to d distance away from your query word.
+Search through a dictionary of words to find a set of words up to d distance away from your query word. This module is case-sensitive.
 
 Install using: pip install Levenshtein-search
 
