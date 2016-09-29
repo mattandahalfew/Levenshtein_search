@@ -189,20 +189,22 @@ static struct Node** getpossibleletters(struct Btree* btree) {
 }
 
 static void compare_letters(struct Btree* curr_letter, int d_x, int q_x, int c_dist, int maxdist, char* query_word, int qwordlength, char* letterssofar, struct WordMatch* wordlist) {
-	char new_qletter = query_word[q_x];
+	struct Node** p_possibleletters;
+	struct Node* letternode;
+	int n,i;
+	struct Btree* p_nextletter;
+	char new_nletter,new_qletter;
+	char* nletterssofar;
+	
+	new_qletter = query_word[q_x];
 	if (q_x >= qwordlength) {
 		new_qletter = 0;
 	}
 
 	if (curr_letter->possibleletters == NULL) curr_letter->possibleletters = getpossibleletters(curr_letter);
-	struct Node** p_possibleletters = curr_letter->possibleletters;
-	struct Node* letternode;
-	int n = (curr_letter->numels) - 1;
-	int i;
-	struct Btree* p_nextletter;
-	char new_nletter;
-	char* nletterssofar;
+	p_possibleletters = curr_letter->possibleletters;
 	
+	n = (curr_letter->numels) - 1;	
 	for (i = 0; i < n; i++) {
 		letternode = *(p_possibleletters++);
 		p_nextletter = (struct Btree*)(letternode->nextletter);
@@ -311,7 +313,7 @@ static void rec_clear(struct Node* node) {
 			}
 			free((void*)p_btree);
 		}
-		printf("%c",node->myletter);
+		//printf("%c",node->myletter);
 		free((void*)node);
 	}
 }
@@ -342,9 +344,11 @@ static PyObject* llist2pylist(struct WordLList* llist) {
 }
 
 static PyObject* clear_dictionary(PyObject *self, PyObject *args) {
-	printf("Deleting letters...\n");
-	rec_clear(dictionary->root);
-	dictionary = NULL;
+	//printf("Deleting letters...\n");
+	if (dictionary!=NULL) {
+		rec_clear(dictionary->root);
+		dictionary = NULL;
+	}
 	Py_RETURN_NONE;
 }
 
@@ -359,9 +363,7 @@ static PyObject* lookup(PyObject *self, PyObject *args)
 		return NULL;
 
 	mystring = (char*)pystring;
-	
-	printf("Lookup word: %s\n",mystring);
-
+	//printf("Lookup word: %s\n",mystring);
 	p_wordllist = generate_wordlist(mystring,maxdist);
 	
 	pyoutlist = llist2pylist(p_wordllist);
@@ -398,7 +400,7 @@ static PyObject *populate_dictionary(PyObject *self, PyObject *args)
 		wordlength = (int)PyString_Size(listobj);
 		mystring = PyString_AsString(listobj);
 	#endif
-		printf("Adding: %s\n",mystring);
+		//printf("Adding: %s\n",mystring);
 		addword(mystring,wordlength);
 	}
 		
