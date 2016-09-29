@@ -404,7 +404,7 @@ static PyObject *populate_dictionary(PyObject *self, PyObject *args)
 		addword(mystring,wordlength);
 	}
 		
-	return listobj;
+	Py_RETURN_NONE;
 }
 
 static PyMethodDef module_methods[] = {
