@@ -5,7 +5,7 @@ Here is an example of use:
 import Levenshtein_search
  
 examplewords = []
-examplewords.append("foxes")
+examplewords.append("foxes")\n
 examplewords.append("fixes")
 examplewords.append("faxes")
 examplewords.append("fonts")
