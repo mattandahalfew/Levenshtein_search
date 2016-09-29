@@ -21,7 +21,7 @@ examplewords.append("fonts")
 
 examplewords.append("first")
 
-Levenshtein_search.populate_dictionary(pythonstrings)
+Levenshtein_search.populate_dictionary(examplewords)
 
 results = Levenshtein_search.lookup("foxes",1) #First argument is a string. Second argument is a non-negative integer representing the max distance from the query word.
 
