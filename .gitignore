@@ -8,3 +8,7 @@ Levenshtein_search.egg-info/dependency_links.txt
 *.whl
 *.gz
 Levenshtein_search.egg-info/PKG-INFO
+*.lib
+build/lib.win-amd64-3.5/Levenshtein_search.cp35-win_amd64.pyd
+*.obj
+build/temp.win-amd64-3.5/Release/Levenshtein_search.cp35-win_amd64.exp

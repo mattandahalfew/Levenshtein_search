@@ -52,6 +52,7 @@ Query word: overcoat
 coat: 4, 0.0222222222222
 overshoes: 4, 0.0222222222222
 ```
+If there is any word in the results that is the same as your query word, it is guaranteed to be the first item of the result list. All other words are in no particular order.
 
 #Installation
 pip install Levenshtein-search
