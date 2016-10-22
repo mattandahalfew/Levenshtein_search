@@ -1,37 +1,16 @@
 # Levenshtein_search
 By Matt Anderson. 2016
 
-Levenshtein search is a Python module that will add words to a dictionary, then search the dictionary for words that are d distance away from a query word. This module was written in C and was designed to increase search speed by minimizing the number of redundant comparisons.
+Levenshtein_search is a Python module that stores any number of documents as Tries. It performs fuzzy searches for words in a document that are d distance away from a query word. Searches are designed to be used in conjunction with TF-IDF calculations. The term frequency (TF) is computed for each approximately matching word in the document, as well as the Levenshtein distance from your query word. The module was written in C and increases search speed by using graph search algorithms and minimizing the number of redundant comparisons.
 
-#How does it work?
-The dictionary is stored as a kind of tree data structure called a trie. The keys to the data structure are strings of letters that comprise words. Words are terminated with a null character and there are no restrictions to their length.
-
-When searching the dictionary for a query word, the search algorithm is a depth first search (DFS). DFS first compares corresponding characters from the dictionary and query word, by moving along the query word recursively. Then it compares alternative characters from the dictionary if the maximum Levenshtein distance has not been exceeded or the end of the words has not been reached. However, since this algorithm finds every possible word in the dictionary that is within the specified Levenshtein distance, the order of search is of little consequence. Cumulative Levenshtein distance is passed on or added to at each recursion, so a search will terminate when it is futile.
-
-Results returned by the algorithm are guaranteed to be unique. During the search, arriving at the same word by more than one path is detected by searching a binary search tree (BST) for all newly-added words. Unique words are added to the BST. After searching all paths that are within Levenshtein distance, the BST is traversed and these words are added to a python list.
-
-#Installation:
-
-pip install Levenshtein-search
-
-#Use example:
-
+#Usage
+```python
 import Levenshtein_search
 
-examplewords = []
+excerpt1 = ["We","went","to","the","fire","Mother","said","Is","he","cold","Versh","Nome","Versh","said","Take","his","overcoat","and","overshoes","off","Mother","said","How","many","times","do","I","have","to","tell","you","not","to","bring","him","into","the","house","with","his","overshoes","on"]
+excerpt2 = ["Yessum","Versh","said","Hold","still","now","He","took","my","overshoes","off","and","unbuttoned","my","coat","Caddy","said","Wait","Versh","Cant","he","go","out","again","Mother","I","want","him","to","go","with","me","Youd","better","leave","him","here","Uncle","Maury","said","Hes","been","out","enough","today"]
 
-examplewords.append("foxes") #Characters compared in this module are case-sensitive
+x = Levenshtein_search.populate_wordset(-1,excerpt1)
+```
+The module accepts documents as Python lists of strings. To create a new document and give it a set of words, use the populate_wordset(x,excerpt1) function where x is an integer representing the document's index. If you would like the new document's index to be assigned, x should equal -1 and the function will return the new document's index, starting with 0. If you would like to add words to a preexisting document, x should equal that document's index. In the example, excerpt1 is the Python list of strings.
 
-examplewords.append("fixes")
-
-examplewords.append("faxes")
-
-examplewords.append("fonts")
-
-examplewords.append("first") #Populate the dictionary with a Python list of strings
-
-Levenshtein_search.populate_dictionary(examplewords)
-
-results = Levenshtein_search.lookup("foxes",1) #First argument is the query word. Second argument is a non-negative integer representing the max distance from the query word.
-
-Levenshtein_search.clear_dictionary() #Removes the dictionary from memory when finished

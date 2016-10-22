@@ -1,13 +1,13 @@
-//Written by Matt Anderson. 2016.
+//Written by Matt Anderson. v1.3, October 22, 2016.
 #include <Python.h>
 #if PY_MAJOR_VERSION >= 3
 	#define PyString_FromString		PyUnicode_FromString
 #endif
 
-char module_docstring[] = "Search through a dictionary to find words d distance away from a query word";
-char pop_dict_docstring[] = "Add a Python list of strings to the dictionary";
-char lookup_docstring[] = "Lookup query word to find word set d distance away or less";
-char clr_dict_docstring[] = "Clear dictionary and free memory";
+char module_docstring[] = "Search through a set of words to find words d distance away from a query word";
+char pop_wdset_docstring[] = "Add a Python list of strings to the wordset";
+char lookup_docstring[] = "Lookup query word to find a subset of words d distance away or less";
+char clr_wdset_docstring[] = "Clear word set and free memory";
 
 struct Node {
 	char myletter;
@@ -32,20 +32,41 @@ static struct Btree* blank_Btree() {
 	return outp;
 }
 
+struct WordSet {
+	struct Btree* firstletter;
+	int nwords;
+	struct WordSet* below;
+};
+
+struct WordSet* all_wordsets = NULL;
+int nwordsets = 0;
+
+static struct WordSet* new_WordSet() {
+	struct WordSet* outp = (struct WordSet*)malloc(sizeof(struct WordSet));
+	
+	outp->firstletter = blank_Btree();
+	outp->nwords = 0;
+	outp->below = NULL;
+	
+	return outp;
+}
+
 struct WordMatch {
 	struct WordMatch* left;
 	struct WordMatch* right;
 	char* myword;
-	char* unique_id;
+	void* unique_id;
+	unsigned char lev_dist;
 };
 
 //Standard constructor for WordMatch
-static struct WordMatch* new_WordMatch(char* newword, char* unique_p) {
+static struct WordMatch* new_WordMatch(char* newword, void* unique_p, unsigned char dist) {
 	struct WordMatch* p_wordmatch = (struct WordMatch*)malloc(sizeof(struct WordMatch));
 	p_wordmatch->left = NULL;
 	p_wordmatch->right = NULL;
 	p_wordmatch->myword = newword;
 	p_wordmatch->unique_id = unique_p;
+	p_wordmatch->lev_dist = dist;
 	
 	return p_wordmatch;
 }
@@ -61,6 +82,9 @@ static struct WordMatch* WordMatch_insert(struct WordMatch* p_node, struct WordM
 		p_node->right = WordMatch_insert(p_node->right,toadd);
 	}
 	else {
+		if (toadd->lev_dist < p_node->lev_dist) {
+			p_node->lev_dist = toadd->lev_dist;
+		}
 		free((void*)(toadd->myword));
 		free((void*)toadd);
 	}
@@ -131,8 +155,6 @@ static struct Btree* insert(struct Btree* btree, char tobeinserted) {
 	return nextletter_casted;
 }
 
-struct Btree* dictionary = NULL;
-
 static struct Btree* nextlett_lookup(struct Node* node, char lett) {
 	if (node==NULL) return NULL;
 	else if (lett == node->myletter) return (struct Btree*)(node->nextletter);
@@ -140,8 +162,8 @@ static struct Btree* nextlett_lookup(struct Node* node, char lett) {
 	else return nextlett_lookup(node->right,lett);
 }
 
-static void addword(char* p_string, int wordlength) {
-	struct Btree* curr_letter = dictionary;
+static void addword(struct WordSet* p_wordset, char* p_string, int wordlength) {
+	struct Btree* curr_letter = p_wordset->firstletter;
 	struct Btree* nextlettertree;
 	int i;
 	
@@ -154,6 +176,7 @@ static void addword(char* p_string, int wordlength) {
 		}
 		curr_letter = nextlettertree;
 	}
+	curr_letter->numels += 1;//This statement records the number of times the word is present in the wordset
 }
 
 static char* new_letterssofar(char* letterssofar, char newletter, int d_x) {
@@ -229,10 +252,10 @@ static void compare_letters(struct Btree* curr_letter, int d_x, int q_x, int c_d
 		else if ((c_dist+qwordlength-(q_x+1)) < maxdist) {
 			nletterssofar = new_letterssofar(letterssofar,0,d_x+1);
 			nletterssofar[d_x] = 0;
-			wordlist->left = WordMatch_insert(wordlist->left,new_WordMatch(nletterssofar,&(letternode->myletter)));
+			wordlist->left = WordMatch_insert(wordlist->left,new_WordMatch(nletterssofar,letternode->nextletter,(unsigned char)(c_dist+qwordlength-q_x)));
 		}
 	}
-	letternode = *(p_possibleletters++);
+	letternode = *p_possibleletters;
 	p_nextletter = (struct Btree*)(letternode->nextletter);
 	new_nletter = letternode->myletter;
 	if (new_nletter != 0) {
@@ -259,7 +282,7 @@ static void compare_letters(struct Btree* curr_letter, int d_x, int q_x, int c_d
 		nletterssofar = new_letterssofar(letterssofar,0,d_x+1);
 		free((void*)letterssofar);
 		nletterssofar[d_x] = 0;
-		wordlist->left = WordMatch_insert(wordlist->left,new_WordMatch(nletterssofar,&(letternode->myletter)));
+		wordlist->left = WordMatch_insert(wordlist->left,new_WordMatch(nletterssofar,letternode->nextletter,(unsigned char)(c_dist+qwordlength-q_x)));
 	}
 	else {
 		free((void*)letterssofar);
@@ -284,8 +307,8 @@ static struct WordLList* gen_wordllist(struct WordMatch* p_wordlist) {
 	return outp;	
 }
 
-static struct WordLList* generate_wordlist(char* query_word, int maxdist) {
-	struct WordMatch* p_wordlist = new_WordMatch(NULL,NULL);
+static struct WordLList* generate_wordlist(struct WordSet* p_wordset, char* query_word, int maxdist) {
+	struct WordMatch* p_wordlist = new_WordMatch(NULL,NULL,255);
 	int wordlength = 0;
 	struct WordLList* p_wordllist;
 
@@ -293,7 +316,7 @@ static struct WordLList* generate_wordlist(char* query_word, int maxdist) {
 		wordlength++;
 	}
 	
-	compare_letters(dictionary,0,0,0,maxdist,query_word,wordlength,NULL,p_wordlist);
+	compare_letters(p_wordset->firstletter,0,0,0,maxdist,query_word,wordlength,NULL,p_wordlist);
 	p_wordllist = gen_wordllist(p_wordlist);
 	free((void*)p_wordlist);
 	
@@ -318,20 +341,70 @@ static void rec_clear(struct Node* node) {
 	}
 }
 
-static PyObject* llist2pylist(struct WordLList* llist) {
+static char b_samestring(char* a, char* b) {
+	char outp = 1;
+	
+	while ((outp!=0) && ((*a!=0) || (*b!=0))) {
+		if (*a==*b) {
+			a++;
+			b++;
+		}
+		else {
+			outp = 0;
+		}
+	}
+	
+	return outp;
+}
+
+static void wordinfront(struct WordLList* llist, char* frontword) {
+	int i;
 	int len = llist->length;
-	PyObject *list,*pystring;
+	struct WordLList* temp_llist;
+	struct WordLList* p_llist = llist;
+	
+	for (i = 0; i < len; i++) {
+		temp_llist = p_llist->below;
+		if (b_samestring(temp_llist->myword->myword,frontword)!=0) {
+			p_llist->below = temp_llist->below;
+			temp_llist->below = llist->below;
+			llist->below = temp_llist;
+			i = len; //To exit the loop
+		}
+		else {
+			p_llist = temp_llist;
+		}
+	}	
+}
+
+//The term-frequency is computed in this function
+static PyObject* llist2pylist(struct WordLList* llist, int totalwords, char* frontword) {
+	int len = llist->length;
+	PyObject *list,*wf_pair;
 	int i;
 	struct WordMatch* p_wordmatch;
 	struct WordLList *p_llist,*temp_llist;
+	struct Btree* p_word_freq;
+	double n = (double)totalwords;
+	double f;
+	
+	wordinfront(llist,frontword);
 	
 	list = PyList_New(len);
 	p_llist = llist->below;
 	free((void*)llist);
 	for (i = 0; i < len; i++) {
 		p_wordmatch = p_llist->myword;
-		pystring = PyString_FromString(p_wordmatch->myword);
-		PyList_SetItem(list, i, pystring);
+
+		wf_pair = PyList_New(3);
+		PyList_SetItem(wf_pair,0,PyString_FromString(p_wordmatch->myword));
+		PyList_SetItem(wf_pair,1,Py_BuildValue("b", p_wordmatch->lev_dist));
+		
+		p_word_freq = (struct Btree*)(p_wordmatch->unique_id);
+		f = ((double)(p_word_freq->numels)) / n;
+		PyList_SetItem(wf_pair,2,Py_BuildValue("d", f));
+
+		PyList_SetItem(list, i, wf_pair);
 		temp_llist = p_llist;
 		p_llist = p_llist->below;
 		
@@ -343,35 +416,101 @@ static PyObject* llist2pylist(struct WordLList* llist) {
 	return list;	
 }
 
-static PyObject* clear_dictionary(PyObject *self, PyObject *args) {
+//Returns null if x >= the number of WordSets. Otherwise returns the appropriate WordSet.
+static struct WordSet* get_xwordset(struct WordSet* ws, int x) {
+	if ((x<1) || (ws==NULL)) {
+		return ws;
+	}
+	else {
+		return get_xwordset(ws->below,x-1);
+	}
+}
+
+static struct WordSet* get_pwordset(int idx_ws) {
+	struct WordSet* p_wordset;
+	
+	if ((all_wordsets==NULL) || (idx_ws<0) || (idx_ws>=nwordsets)) {
+		p_wordset = NULL;
+	}
+	else {
+		p_wordset = get_xwordset(all_wordsets,idx_ws);
+	}
+	
+	return p_wordset;
+}
+
+static PyObject* clear_wordset(PyObject *self, PyObject *args) {
+	struct WordSet *p_wordset,*for_deletion;
+	int idx_ws;
+	
+	if (!PyArg_ParseTuple(args, "i", &idx_ws))
+		Py_RETURN_NONE;
 	//printf("Deleting letters...\n");
-	if (dictionary!=NULL) {
-		rec_clear(dictionary->root);
-		dictionary = NULL;
+	
+	if (all_wordsets==NULL) {
+		for_deletion = NULL;
+	}
+	else if (idx_ws==0) {
+		for_deletion = all_wordsets;
+		all_wordsets = for_deletion->below;
+	}
+	else {
+		p_wordset = get_pwordset(idx_ws-1);
+		if (p_wordset==NULL) {
+			for_deletion = NULL;
+		}
+		else {
+			for_deletion = p_wordset->below;
+			if (for_deletion != NULL) {
+				p_wordset->below = for_deletion->below;
+			}
+		}
+	}
+	
+	if (for_deletion!=NULL) {
+		rec_clear(for_deletion->firstletter->root);
+		free((void*)(for_deletion->firstletter));
+		free((void*)for_deletion);
+		nwordsets--;
 	}
 	Py_RETURN_NONE;
 }
 
 static PyObject* lookup(PyObject *self, PyObject *args)
 {
-	PyObject *pystring,*pyoutlist;
+	PyObject *pystring;
 	char* mystring;
 	struct WordLList* p_wordllist;
-	int maxdist;
+	int maxdist,idx_ws;
+	struct WordSet* p_wordset;
 	
-	if (!PyArg_ParseTuple(args, "si", &pystring, &maxdist))
-		return NULL;
-
-	mystring = (char*)pystring;
-	//printf("Lookup word: %s\n",mystring);
-	p_wordllist = generate_wordlist(mystring,maxdist);
+	if (!PyArg_ParseTuple(args, "isi", &idx_ws, &pystring, &maxdist))
+		Py_RETURN_NONE;
 	
-	pyoutlist = llist2pylist(p_wordllist);
-	
-	return pyoutlist;
+	p_wordset = get_pwordset(idx_ws);	
+	if (p_wordset!=NULL) {
+		mystring = (char*)pystring;
+		//printf("Lookup word: %s\n",mystring);
+		p_wordllist = generate_wordlist(p_wordset,mystring,maxdist);
+		//printf("Number of words in doc: %i\n",p_wordset->nwords);		
+		return llist2pylist(p_wordllist,p_wordset->nwords,mystring);
+	}
+	else {
+		Py_RETURN_NONE;
+	}
 }
 
-static PyObject *populate_dictionary(PyObject *self, PyObject *args)
+//Returns the last non-null WS.
+static struct WordSet* get_lastwordset(struct WordSet* ws) {
+	if (ws->below == NULL) {
+		return ws;
+	}
+	else {
+		return get_lastwordset(ws->below);
+	}
+}
+
+static PyObject *populate_wordset(PyObject *self, PyObject *args)
 {
 	PyObject *pystrings, *listobj;
 #if PY_MAJOR_VERSION >= 3
@@ -379,15 +518,28 @@ static PyObject *populate_dictionary(PyObject *self, PyObject *args)
 #endif
 	char *mystring;
 	Py_ssize_t l, i;
-	int wordlength;
+	int wordlength,idx_ws;
+	struct WordSet* p_wordset;
 
-	if (!PyArg_ParseTuple(args, "O", &pystrings)) {
-		Py_RETURN_NONE;
+	if (!PyArg_ParseTuple(args, "iO", &idx_ws, &pystrings)) {
+		return Py_BuildValue("i", -1);
 	}
 	l = PyList_Size(pystrings);
 	
-	if (l > 0) {
-		dictionary = blank_Btree();
+	if (all_wordsets==NULL) {
+		all_wordsets = new_WordSet();
+		p_wordset = all_wordsets;
+		nwordsets = 1;
+		idx_ws = 0;
+	}
+	else if ((idx_ws < 0) || (idx_ws >= nwordsets)) {
+		p_wordset = get_lastwordset(all_wordsets);
+		p_wordset->below = new_WordSet();
+		idx_ws = nwordsets++;
+		p_wordset = p_wordset->below;
+	}
+	else {
+		p_wordset = get_xwordset(all_wordsets,idx_ws);
 	}
 
 	for (i = 0; i < l; i++) {
@@ -401,16 +553,17 @@ static PyObject *populate_dictionary(PyObject *self, PyObject *args)
 		mystring = PyString_AsString(listobj);
 	#endif
 		//printf("Adding: %s\n",mystring);
-		addword(mystring,wordlength);
+		addword(p_wordset,mystring,wordlength);
 	}
+	p_wordset->nwords += l;
 		
-	Py_RETURN_NONE;
+	return Py_BuildValue("i", idx_ws);
 }
 
 static PyMethodDef module_methods[] = {
-	{"populate_dictionary", populate_dictionary, METH_VARARGS, pop_dict_docstring},
+	{"populate_wordset", populate_wordset, METH_VARARGS, pop_wdset_docstring},
 	{"lookup", lookup, METH_VARARGS, lookup_docstring},
-	{"clear_dictionary", clear_dictionary, METH_VARARGS,clr_dict_docstring},
+	{"clear_wordset", clear_wordset, METH_VARARGS,clr_wdset_docstring},
 		{NULL, NULL, 0, NULL}
 };
 
