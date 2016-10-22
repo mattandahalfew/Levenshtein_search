@@ -52,3 +52,6 @@ Query word: overcoat
 coat: 4, 0.0222222222222
 overshoes: 4, 0.0222222222222
 ```
+
+#Installation
+pip install Levenshtein-search
