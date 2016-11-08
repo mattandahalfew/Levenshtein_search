@@ -1,4 +1,4 @@
-//Written by Matt Anderson. v1.4, November 7, 2016.
+//Written by Matt Anderson. v1.4.1, November 7, 2016.
 #include <Python.h>
 #if PY_MAJOR_VERSION >= 3
 	#define PyString_FromString		PyUnicode_FromString
@@ -218,14 +218,12 @@ static int addword(struct WordSet* p_wordset, char* p_string, int wordlength) {
 
 static char* new_letterssofar(char* letterssofar, char newletter, int d_x) {
 	int i;
-	char* newletterssofar;
-	if (newletter==0) newletterssofar = (char *)malloc(d_x * sizeof(char));
-	else newletterssofar = (char *)malloc((d_x + 1) * sizeof(char));
+	char* newletterssofar = (char *)malloc((d_x + 1) * sizeof(char));;
 	
 	for (i = 0; i < d_x; i++) {
 		*(newletterssofar++) = *(letterssofar++);
 	}
-	if (newletter!=0) *newletterssofar = newletter;
+	*newletterssofar = newletter;
 	
 	return newletterssofar - d_x;
 }
@@ -416,6 +414,9 @@ extern void compare_right(struct Btree* curr_letter, int d_x, int q_x, int c_dis
 			compare_letters(p_nextletter,d_x+1,q_x+1,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
 			compare_right(curr_letter,d_x,q_x+1,c_dist+1,maxdist,query_word,qwordlength,letterssofar,wordlist);
 		}
+		else {
+			free((void*)letterssofar);
+		}
 	}
 	else if ((c_dist+qwordlength-q_x) <= maxdist) {
 		wordlist->left = WordMatch_insert(wordlist->left,new_WordMatch(add_letterssofar(letterssofar,0,d_x),(void*)p_nextletter,(unsigned char)(c_dist+qwordlength-q_x)));
@@ -472,14 +473,14 @@ extern void compare_down(struct Btree* curr_letter, int d_x, int q_x, int c_dist
 	if (new_nletter != 0) {
 		if (new_nletter == new_qletter) {
 			compare_letters(p_nextletter,d_x+1,q_x+1,c_dist,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_qletter,d_x),wordlist);
-			compare_down(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
+			compare_down(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,add_letterssofar(letterssofar,new_nletter,d_x),wordlist);
 		}
 		else if (new_qletter!=0) {
 			compare_letters(p_nextletter,d_x+1,q_x+1,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
-			compare_down(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
+			compare_down(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,add_letterssofar(letterssofar,new_nletter,d_x),wordlist);
 		}
 		else {
-			compare_down(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
+			compare_down(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,add_letterssofar(letterssofar,new_nletter,d_x),wordlist);
 		}
 	}
 	else if ((c_dist+qwordlength-q_x) <= maxdist) {
@@ -547,7 +548,7 @@ extern void compare_letters(struct Btree* curr_letter, int d_x, int q_x, int c_d
 			compare_right(curr_letter,d_x,q_x+1,c_dist+1,maxdist,query_word,qwordlength,letterssofar,wordlist);
 		}
 		else {
-			compare_down(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
+			compare_down(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,add_letterssofar(letterssofar,new_nletter,d_x),wordlist);
 		}
 	}
 	else if ((c_dist+qwordlength-q_x) <= maxdist) {
