@@ -1,13 +1,15 @@
-//Written by Matt Anderson. v1.3, October 22, 2016.
+//Written by Matt Anderson. v1.4, November 7, 2016.
 #include <Python.h>
 #if PY_MAJOR_VERSION >= 3
 	#define PyString_FromString		PyUnicode_FromString
 #endif
 
 char module_docstring[] = "Search through a set of words to find words d distance away from a query word";
-char pop_wdset_docstring[] = "Add a Python list of strings to the wordset";
+char init_wdset_docstring[] = "Add a Python list of strings to the wordset";
 char lookup_docstring[] = "Lookup query word to find a subset of words d distance away or less";
 char clr_wdset_docstring[] = "Clear word set and free memory";
+char add_string_docstring[] = "Add a string to the wordset. Returns unique index.";
+char rem_string_docstring[] = "Remove a string from the wordset";
 
 struct Node {
 	char myletter;
@@ -35,6 +37,7 @@ static struct Btree* blank_Btree() {
 struct WordSet {
 	struct Btree* firstletter;
 	int nwords;
+	int nunique_words;
 	struct WordSet* below;
 };
 
@@ -46,6 +49,7 @@ static struct WordSet* new_WordSet() {
 	
 	outp->firstletter = blank_Btree();
 	outp->nwords = 0;
+	outp->nunique_words = 0;
 	outp->below = NULL;
 	
 	return outp;
@@ -127,6 +131,18 @@ static struct Node* newnode(char lett, void* nextlett) {
 	return outputnode;
 }
 
+struct WordStats {
+	int noccurrences;
+	int idx;
+};
+
+static struct WordStats* new_WordStats() {
+	struct WordStats* outp = (struct WordStats*)malloc(sizeof(struct WordStats));
+	outp->noccurrences = 0;
+	
+	return outp;
+}
+
 static struct Node* rec_insert(struct Node* node, char tobeinserted, void* nextletter) {
 	if (node == NULL) {
 		node = newnode(tobeinserted,nextletter);
@@ -141,10 +157,17 @@ static struct Node* rec_insert(struct Node* node, char tobeinserted, void* nextl
 	return node;
 }
 
-static struct Btree* insert(struct Btree* btree, char tobeinserted) {
-	struct Btree* nextletter_casted = blank_Btree();
+static void* insert(struct Btree* btree, char tobeinserted) {
+	void* nextletter;
+	
+	if (tobeinserted==0) {
+		nextletter = (void*)new_WordStats();
+	}
+	else {
+		nextletter = (void*)blank_Btree();
+	}
 
-	btree->root = rec_insert(btree->root,tobeinserted,(void*)nextletter_casted);
+	btree->root = rec_insert(btree->root,tobeinserted,nextletter);
 	btree->numels += 1;
 	
 	if ((btree->possibleletters) != NULL) {
@@ -152,31 +175,45 @@ static struct Btree* insert(struct Btree* btree, char tobeinserted) {
 		btree->possibleletters = NULL;
 	}
 	
-	return nextletter_casted;
+	return nextletter;
 }
 
-static struct Btree* nextlett_lookup(struct Node* node, char lett) {
+static void* nextlett_lookup(struct Node* node, char lett) {
 	if (node==NULL) return NULL;
-	else if (lett == node->myletter) return (struct Btree*)(node->nextletter);
+	else if (lett == node->myletter) return node->nextletter;
 	else if (lett < node->myletter) return nextlett_lookup(node->left,lett);
 	else return nextlett_lookup(node->right,lett);
 }
 
-static void addword(struct WordSet* p_wordset, char* p_string, int wordlength) {
+static int addword(struct WordSet* p_wordset, char* p_string, int wordlength) {
 	struct Btree* curr_letter = p_wordset->firstletter;
-	struct Btree* nextlettertree;
+	void* nextlettertree;
 	int i;
-	
-	wordlength++; //Because we are also adding the null character at the end
+	char isnew = 0;
+	struct WordStats* p_wordstats;
 	
 	for (i = 0; i < wordlength; i++) {
 		nextlettertree = nextlett_lookup(curr_letter->root,p_string[i]);
 		if (nextlettertree==NULL) {
+			isnew = 1;
 			nextlettertree = insert(curr_letter,p_string[i]);
 		}
-		curr_letter = nextlettertree;
+		curr_letter = (struct Btree*)nextlettertree;
 	}
-	curr_letter->numels += 1;//This statement records the number of times the word is present in the wordset
+	nextlettertree = nextlett_lookup(curr_letter->root,p_string[i]);
+	if (nextlettertree==NULL) {
+		isnew = 1;
+		nextlettertree = insert(curr_letter,p_string[i]);
+	}
+	
+	p_wordstats = (struct WordStats*)nextlettertree;
+	p_wordstats->noccurrences += 1;
+	if (isnew!=0) {
+		p_wordstats->idx = p_wordset->nunique_words;
+		p_wordset->nunique_words += 1;
+	}
+	
+	return p_wordstats->idx;
 }
 
 static char* new_letterssofar(char* letterssofar, char newletter, int d_x) {
@@ -191,6 +228,12 @@ static char* new_letterssofar(char* letterssofar, char newletter, int d_x) {
 	if (newletter!=0) *newletterssofar = newletter;
 	
 	return newletterssofar - d_x;
+}
+
+static char* add_letterssofar(char* letterssofar, char newletter, int d_x) {
+	letterssofar = (char*)realloc((void*)letterssofar,(d_x+1)*sizeof(char));
+	letterssofar[d_x] = newletter;
+	return letterssofar;
 }
 
 static void rec_getletters(struct Node** letterarray, int* p_idxletter, struct Node* node) {
@@ -211,23 +254,138 @@ static struct Node** getpossibleletters(struct Btree* btree) {
 	return possibleletters;
 }
 
-static void compare_letters(struct Btree* curr_letter, int d_x, int q_x, int c_dist, int maxdist, char* query_word, int qwordlength, char* letterssofar, struct WordMatch* wordlist) {
+static struct Node* replace_max(struct Node* node) {
+	struct Node* maxnode;
+	
+	if (node->right == NULL) {
+		return node;
+	}
+	else {
+		maxnode = replace_max(node->right);
+		if (maxnode==node->right) {
+			node->right = maxnode->left;
+		}
+		return maxnode;
+	}
+}
+
+static struct Node* delete_node(struct Node* node, char char_delete) {
+	struct Node* replacement_node;
+	
+	if (char_delete == node->myletter) {
+		if (node->left == NULL) {
+			replacement_node = node->right;
+		}
+		else {
+			replacement_node = replace_max(node->left);
+			replacement_node->left = node->left;
+			replacement_node->right = node->right;
+		}
+		free((void*)node);
+		return replacement_node;
+	}
+	else if (char_delete < node->myletter) {
+		node->left = delete_node(node->left,char_delete);
+		return node;
+	}
+	else {
+		node->right = delete_node(node->right,char_delete);
+		return node;
+	}
+}
+
+static void* delete_Btree(struct Btree* this_letter, int q_x, char* p_word, char* b_issafe) {
+	void* nextletter = nextlett_lookup(this_letter->root,p_word[q_x]);
+	void* wordstats;
+
+	if (p_word[q_x] == 0) {		
+		if (this_letter->numels == 1) {
+			free((void*)this_letter->root);
+			if (this_letter->possibleletters != NULL) {
+				free((void*)(this_letter->possibleletters));
+			}
+		}
+		else {
+			this_letter->root = delete_node(this_letter->root,0);
+			this_letter->numels -= 1;
+			if (this_letter->possibleletters != NULL) {
+				free((void*)(this_letter->possibleletters));
+				this_letter->possibleletters = NULL;
+			}
+			*b_issafe = 0;
+		}
+		return nextletter;
+	}
+	else {
+		wordstats = delete_Btree((struct Btree*)nextletter,q_x+1,p_word,b_issafe);
+		if (*b_issafe != 0) {
+			if (this_letter->numels == 1) {
+				free(nextletter);
+				free((void*)this_letter->root);
+				if (this_letter->possibleletters != NULL) {
+					free((void*)(this_letter->possibleletters));
+				}
+			}
+			else {
+				free(nextletter);
+				this_letter->root = delete_node(this_letter->root,p_word[q_x]);
+				this_letter->numels -= 1;
+				if (this_letter->possibleletters != NULL) {
+					free((void*)(this_letter->possibleletters));
+					this_letter->possibleletters = NULL;
+				}				
+				*b_issafe = 0;
+			}
+		}
+		return wordstats;
+	}
+}
+
+static void compare_same(struct Btree* curr_letter, int d_x, unsigned char lev_dist, char* query_letter, char* letterssofar, struct WordMatch* wordlist) {
+	char new_qletter = *query_letter;
+	void* p_nextletter = nextlett_lookup(curr_letter->root,new_qletter);
+	
+	if (new_qletter==0) {
+		if (p_nextletter != NULL) {
+			letterssofar = add_letterssofar(letterssofar,0,d_x);
+			wordlist->left = WordMatch_insert(wordlist->left,new_WordMatch(letterssofar,p_nextletter,lev_dist));
+		}
+		else {
+			free((void*)letterssofar);
+		}
+	}
+	else if (p_nextletter != NULL) {
+		letterssofar = add_letterssofar(letterssofar,new_qletter,d_x);
+		compare_same((struct Btree*)p_nextletter,d_x+1,lev_dist,query_letter+1,letterssofar,wordlist);
+	}
+	else {
+		free((void*)letterssofar);
+	}
+}
+
+void compare_right(struct Btree* curr_letter, int d_x, int q_x, int c_dist, int maxdist, char* query_word, int qwordlength, char* letterssofar, struct WordMatch* wordlist);
+void compare_down(struct Btree* curr_letter, int d_x, int q_x, int c_dist, int maxdist, char* query_word, int qwordlength, char* letterssofar, struct WordMatch* wordlist);
+void compare_letters(struct Btree* curr_letter, int d_x, int q_x, int c_dist, int maxdist, char* query_word, int qwordlength, char* letterssofar, struct WordMatch* wordlist);
+
+extern void compare_right(struct Btree* curr_letter, int d_x, int q_x, int c_dist, int maxdist, char* query_word, int qwordlength, char* letterssofar, struct WordMatch* wordlist) {
 	struct Node** p_possibleletters;
 	struct Node* letternode;
 	int n,i;
 	struct Btree* p_nextletter;
 	char new_nletter,new_qletter;
 	char* nletterssofar;
+		
+	if (c_dist == maxdist) {
+		compare_same(curr_letter,d_x,(unsigned char)c_dist,query_word+q_x,letterssofar,wordlist);
+		return;
+	}
 	
 	new_qletter = query_word[q_x];
-	if (q_x >= qwordlength) {
-		new_qletter = 0;
-	}
 
 	if (curr_letter->possibleletters == NULL) curr_letter->possibleletters = getpossibleletters(curr_letter);
 	p_possibleletters = curr_letter->possibleletters;
 	
-	n = (curr_letter->numels) - 1;	
+	n = (curr_letter->numels) - 1;
 	for (i = 0; i < n; i++) {
 		letternode = *(p_possibleletters++);
 		p_nextletter = (struct Btree*)(letternode->nextletter);
@@ -235,24 +393,15 @@ static void compare_letters(struct Btree* curr_letter, int d_x, int q_x, int c_d
 		if (new_nletter != 0) {
 			if (new_nletter == new_qletter) {
 				compare_letters(p_nextletter,d_x+1,q_x+1,c_dist,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_qletter,d_x),wordlist);
-				compare_letters(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
-				compare_letters(curr_letter,d_x,q_x+1,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,0,d_x),wordlist);
 			}
-			else if (c_dist < maxdist) {
-				if (new_qletter!=0) {
-					compare_letters(p_nextletter,d_x+1,q_x+1,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
-					compare_letters(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
-					compare_letters(curr_letter,d_x,q_x+1,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,0,d_x),wordlist);
-				}
-				else {
-					compare_letters(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
-				}
+			else if (new_qletter!=0) {
+				compare_letters(p_nextletter,d_x+1,q_x+1,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
 			}
 		}
-		else if ((c_dist+qwordlength-(q_x+1)) < maxdist) {
+		else if ((c_dist+qwordlength-q_x) <= maxdist) {
 			nletterssofar = new_letterssofar(letterssofar,0,d_x+1);
 			nletterssofar[d_x] = 0;
-			wordlist->left = WordMatch_insert(wordlist->left,new_WordMatch(nletterssofar,letternode->nextletter,(unsigned char)(c_dist+qwordlength-q_x)));
+			wordlist->left = WordMatch_insert(wordlist->left,new_WordMatch(nletterssofar,(void*)p_nextletter,(unsigned char)(c_dist+qwordlength-q_x)));
 		}
 	}
 	letternode = *p_possibleletters;
@@ -261,33 +410,152 @@ static void compare_letters(struct Btree* curr_letter, int d_x, int q_x, int c_d
 	if (new_nletter != 0) {
 		if (new_nletter == new_qletter) {
 			compare_letters(p_nextletter,d_x+1,q_x+1,c_dist,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_qletter,d_x),wordlist);
-			compare_letters(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
-			compare_letters(curr_letter,d_x,q_x+1,c_dist+1,maxdist,query_word,qwordlength,letterssofar,wordlist);
+			compare_right(curr_letter,d_x,q_x+1,c_dist+1,maxdist,query_word,qwordlength,letterssofar,wordlist);
 		}
-		else if (c_dist < maxdist) {
-			if (new_qletter!=0) {
-				compare_letters(p_nextletter,d_x+1,q_x+1,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
-				compare_letters(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
-				compare_letters(curr_letter,d_x,q_x+1,c_dist+1,maxdist,query_word,qwordlength,letterssofar,wordlist);
-			}
-			else {
-				compare_letters(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
-			}
-		}
-		else {
-			free((void*)letterssofar);
+		else if (new_qletter!=0) {
+			compare_letters(p_nextletter,d_x+1,q_x+1,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
+			compare_right(curr_letter,d_x,q_x+1,c_dist+1,maxdist,query_word,qwordlength,letterssofar,wordlist);
 		}
 	}
-	else if ((c_dist+qwordlength-(q_x+1)) < maxdist) {
-		nletterssofar = new_letterssofar(letterssofar,0,d_x+1);
-		free((void*)letterssofar);
-		nletterssofar[d_x] = 0;
-		wordlist->left = WordMatch_insert(wordlist->left,new_WordMatch(nletterssofar,letternode->nextletter,(unsigned char)(c_dist+qwordlength-q_x)));
+	else if ((c_dist+qwordlength-q_x) <= maxdist) {
+		wordlist->left = WordMatch_insert(wordlist->left,new_WordMatch(add_letterssofar(letterssofar,0,d_x),(void*)p_nextletter,(unsigned char)(c_dist+qwordlength-q_x)));
 	}
 	else {
 		free((void*)letterssofar);
 	}	
+}
 
+extern void compare_down(struct Btree* curr_letter, int d_x, int q_x, int c_dist, int maxdist, char* query_word, int qwordlength, char* letterssofar, struct WordMatch* wordlist) {
+	struct Node** p_possibleletters;
+	struct Node* letternode;
+	int n,i;
+	struct Btree* p_nextletter;
+	char new_nletter,new_qletter;
+	char* nletterssofar;
+	
+	if (c_dist == maxdist) {
+		compare_same(curr_letter,d_x,(unsigned char)c_dist,query_word+q_x,letterssofar,wordlist);
+		return;
+	}
+	new_qletter = query_word[q_x];
+
+	if (curr_letter->possibleletters == NULL) curr_letter->possibleletters = getpossibleletters(curr_letter);
+	p_possibleletters = curr_letter->possibleletters;
+	
+	n = (curr_letter->numels) - 1;
+	for (i = 0; i < n; i++) {
+		letternode = *(p_possibleletters++);
+		p_nextletter = (struct Btree*)(letternode->nextletter);
+		new_nletter = letternode->myletter;
+		if (new_nletter != 0) {
+			if (new_nletter == new_qletter) {
+				compare_letters(p_nextletter,d_x+1,q_x+1,c_dist,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_qletter,d_x),wordlist);
+				compare_down(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
+			}
+			else if (new_qletter!=0) {
+				compare_letters(p_nextletter,d_x+1,q_x+1,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
+				compare_down(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
+			}
+			else {
+				compare_down(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
+			}
+		}
+		else if ((c_dist+qwordlength-q_x) <= maxdist) {
+			nletterssofar = new_letterssofar(letterssofar,0,d_x+1);
+			nletterssofar[d_x] = 0;
+			wordlist->left = WordMatch_insert(wordlist->left,new_WordMatch(nletterssofar,(void*)p_nextletter,(unsigned char)(c_dist+qwordlength-q_x)));
+		}
+	}
+	letternode = *p_possibleletters;
+	p_nextletter = (struct Btree*)(letternode->nextletter);
+	new_nletter = letternode->myletter;
+	if (new_nletter != 0) {
+		if (new_nletter == new_qletter) {
+			compare_letters(p_nextletter,d_x+1,q_x+1,c_dist,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_qletter,d_x),wordlist);
+			compare_down(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
+		}
+		else if (new_qletter!=0) {
+			compare_letters(p_nextletter,d_x+1,q_x+1,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
+			compare_down(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
+		}
+		else {
+			compare_down(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
+		}
+	}
+	else if ((c_dist+qwordlength-q_x) <= maxdist) {
+		wordlist->left = WordMatch_insert(wordlist->left,new_WordMatch(add_letterssofar(letterssofar,0,d_x),(void*)p_nextletter,(unsigned char)(c_dist+qwordlength-q_x)));
+	}
+	else {
+		free((void*)letterssofar);
+	}
+}
+
+extern void compare_letters(struct Btree* curr_letter, int d_x, int q_x, int c_dist, int maxdist, char* query_word, int qwordlength, char* letterssofar, struct WordMatch* wordlist) {
+	struct Node** p_possibleletters;
+	struct Node* letternode;
+	int n,i;
+	struct Btree* p_nextletter;
+	char new_nletter,new_qletter;
+	char* nletterssofar;
+		
+	if (c_dist == maxdist) {
+		compare_same(curr_letter,d_x,(unsigned char)c_dist,query_word+q_x,letterssofar,wordlist);
+		return;
+	}
+	
+	new_qletter = query_word[q_x];
+
+	if (curr_letter->possibleletters == NULL) curr_letter->possibleletters = getpossibleletters(curr_letter);
+	p_possibleletters = curr_letter->possibleletters;
+	
+	n = (curr_letter->numels) - 1;
+	for (i = 0; i < n; i++) {
+		letternode = *(p_possibleletters++);
+		p_nextletter = (struct Btree*)(letternode->nextletter);
+		new_nletter = letternode->myletter;
+		if (new_nletter != 0) {
+			if (new_nletter == new_qletter) {
+				compare_letters(p_nextletter,d_x+1,q_x+1,c_dist,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_qletter,d_x),wordlist);
+				compare_down(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
+			}
+			else if (new_qletter!=0) {
+				compare_letters(p_nextletter,d_x+1,q_x+1,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
+				compare_down(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
+			}
+			else {
+				compare_down(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
+			}
+		}
+		else if ((c_dist+qwordlength-q_x) <= maxdist) {
+			nletterssofar = new_letterssofar(letterssofar,0,d_x+1);
+			nletterssofar[d_x] = 0;
+			wordlist->left = WordMatch_insert(wordlist->left,new_WordMatch(nletterssofar,(void*)p_nextletter,(unsigned char)(c_dist+qwordlength-q_x)));
+		}
+	}
+	letternode = *p_possibleletters;
+	p_nextletter = (struct Btree*)(letternode->nextletter);
+	new_nletter = letternode->myletter;
+	if (new_nletter != 0) {
+		if (new_nletter == new_qletter) {
+			compare_letters(p_nextletter,d_x+1,q_x+1,c_dist,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_qletter,d_x),wordlist);
+			compare_down(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
+			compare_right(curr_letter,d_x,q_x+1,c_dist+1,maxdist,query_word,qwordlength,letterssofar,wordlist);
+		}
+		else if (new_qletter!=0) {
+			compare_letters(p_nextletter,d_x+1,q_x+1,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
+			compare_down(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
+			compare_right(curr_letter,d_x,q_x+1,c_dist+1,maxdist,query_word,qwordlength,letterssofar,wordlist);
+		}
+		else {
+			compare_down(p_nextletter,d_x+1,q_x,c_dist+1,maxdist,query_word,qwordlength,new_letterssofar(letterssofar,new_nletter,d_x),wordlist);
+		}
+	}
+	else if ((c_dist+qwordlength-q_x) <= maxdist) {
+		wordlist->left = WordMatch_insert(wordlist->left,new_WordMatch(add_letterssofar(letterssofar,0,d_x),(void*)p_nextletter,(unsigned char)(c_dist+qwordlength-q_x)));
+	}
+	else {
+		free((void*)letterssofar);
+	}
 }
 
 static void traverse_wordlist(struct WordMatch* node, struct WordLList* dest) {
@@ -325,16 +593,20 @@ static struct WordLList* generate_wordlist(struct WordSet* p_wordset, char* quer
 
 static void rec_clear(struct Node* node) {
 	struct Btree* p_btree;
+	void* p_nextletter;
 	if (node != NULL) {
-		p_btree = (struct Btree*)(node->nextletter);
+		p_nextletter = node->nextletter;
 		rec_clear(node->left);
 		rec_clear(node->right);
-		if (p_btree != NULL) {
-			rec_clear(p_btree->root);
-			if (p_btree->possibleletters != NULL) {
-				free((void*)(p_btree->possibleletters));
+		if (p_nextletter != NULL) {
+			if (node->myletter != 0) {
+				p_btree = (struct Btree*)p_nextletter;
+				rec_clear(p_btree->root);
+				if (p_btree->possibleletters != NULL) {
+					free((void*)(p_btree->possibleletters));
+				}
 			}
-			free((void*)p_btree);
+			free(p_nextletter);
 		}
 		//printf("%c",node->myletter);
 		free((void*)node);
@@ -384,7 +656,7 @@ static PyObject* llist2pylist(struct WordLList* llist, int totalwords, char* fro
 	int i;
 	struct WordMatch* p_wordmatch;
 	struct WordLList *p_llist,*temp_llist;
-	struct Btree* p_word_freq;
+	struct WordStats* p_word_freq;
 	double n = (double)totalwords;
 	double f;
 	
@@ -400,8 +672,8 @@ static PyObject* llist2pylist(struct WordLList* llist, int totalwords, char* fro
 		PyList_SetItem(wf_pair,0,PyString_FromString(p_wordmatch->myword));
 		PyList_SetItem(wf_pair,1,Py_BuildValue("b", p_wordmatch->lev_dist));
 		
-		p_word_freq = (struct Btree*)(p_wordmatch->unique_id);
-		f = ((double)(p_word_freq->numels)) / n;
+		p_word_freq = (struct WordStats*)(p_wordmatch->unique_id);
+		f = ((double)(p_word_freq->noccurrences)) / n;
 		PyList_SetItem(wf_pair,2,Py_BuildValue("d", f));
 
 		PyList_SetItem(list, i, wf_pair);
@@ -440,40 +712,103 @@ static struct WordSet* get_pwordset(int idx_ws) {
 }
 
 static PyObject* clear_wordset(PyObject *self, PyObject *args) {
-	struct WordSet *p_wordset,*for_deletion;
+	struct WordSet *p_wordset;
+	struct Btree* p_firstletter;
 	int idx_ws;
 	
 	if (!PyArg_ParseTuple(args, "i", &idx_ws))
 		Py_RETURN_NONE;
 	//printf("Deleting letters...\n");
+
+	p_wordset = get_pwordset(idx_ws);
+
+	if (p_wordset!=NULL) {
+		p_firstletter = p_wordset->firstletter;
+		rec_clear(p_firstletter->root);
+		p_firstletter->root = NULL;
+		if (p_firstletter->possibleletters != NULL) {
+			free((void*)(p_firstletter->possibleletters));
+		}
+		p_firstletter->possibleletters = NULL;
+		p_firstletter->numels = 0;
+		p_wordset->nwords = -1;
+	}
 	
-	if (all_wordsets==NULL) {
-		for_deletion = NULL;
+	Py_RETURN_NONE;
+}
+
+static int get_length(char* p_string) {
+	int l = 0;
+	
+	while (*p_string != 0) {
+		p_string++;
+		l++;
 	}
-	else if (idx_ws==0) {
-		for_deletion = all_wordsets;
-		all_wordsets = for_deletion->below;
+	
+	return l;
+}
+
+static PyObject* add_string(PyObject *self, PyObject *args) {
+	PyObject *pystring;
+	char* mystring;
+	int wordindex = -1;
+	int idx_ws = 0;
+	struct WordSet* p_wordset;
+	
+	if (!PyArg_ParseTuple(args, "is", &idx_ws, &pystring))
+		Py_RETURN_NONE;
+	
+	p_wordset = get_pwordset(idx_ws);	
+	if (p_wordset!=NULL) {
+		mystring = (char*)pystring;
+		wordindex = addword(p_wordset,mystring,get_length(mystring));
+		p_wordset->nwords += 1;
 	}
-	else {
-		p_wordset = get_pwordset(idx_ws-1);
-		if (p_wordset==NULL) {
-			for_deletion = NULL;
+		
+	return Py_BuildValue("i", wordindex);
+}
+
+static PyObject* remove_string(PyObject *self, PyObject *args) {
+	PyObject *pystring;
+	char* mystring;
+	int w_idx = 0;
+	struct WordSet* p_wordset;
+	struct WordLList *p_wordllist,*temp_wordllist;
+	struct WordStats* p_wordstats;
+	char b_issafe = 1;
+	
+	if (!PyArg_ParseTuple(args, "is", &w_idx, &pystring))
+		Py_RETURN_NONE;
+	
+	p_wordset = get_pwordset(w_idx);
+	if (p_wordset != NULL) {
+		mystring = (char*)pystring;
+		p_wordllist = generate_wordlist(p_wordset,mystring,0);
+		if (p_wordllist->length == 0) {
+			printf("String to be removed was not found in the dictionary\n");
+			free((void*)p_wordllist);
+			w_idx = -1;
 		}
 		else {
-			for_deletion = p_wordset->below;
-			if (for_deletion != NULL) {
-				p_wordset->below = for_deletion->below;
-			}
+			//printf("Word found in dictionary\n");
+			temp_wordllist = p_wordllist;
+			p_wordllist = p_wordllist->below;
+			free((void*)temp_wordllist);
+			free((void*)(p_wordllist->myword->myword));
+			free((void*)(p_wordllist->myword));
+			free((void*)p_wordllist);		
+			//printf("Deleting word\n");
+			p_wordstats = (struct WordStats*)delete_Btree(p_wordset->firstletter,0,mystring,&b_issafe);
+			p_wordset->nwords -= p_wordstats->noccurrences;
+			w_idx = p_wordstats->idx;
+			free((void*)p_wordstats);
 		}
 	}
-	
-	if (for_deletion!=NULL) {
-		rec_clear(for_deletion->firstletter->root);
-		free((void*)(for_deletion->firstletter));
-		free((void*)for_deletion);
-		nwordsets--;
+	else {
+		w_idx = -1;
 	}
-	Py_RETURN_NONE;
+
+	return Py_BuildValue("i", w_idx);
 }
 
 static PyObject* lookup(PyObject *self, PyObject *args)
@@ -500,13 +835,18 @@ static PyObject* lookup(PyObject *self, PyObject *args)
 	}
 }
 
-//Returns the last non-null WS.
-static struct WordSet* get_lastwordset(struct WordSet* ws) {
+static struct WordSet* get_blankwordset(struct WordSet* ws, int x) {
 	if (ws->below == NULL) {
+		ws->below = new_WordSet();
+		ws->below->nwords = x+1;
+		return ws->below;
+	}
+	else if (ws->nwords == -1) {
+		ws->nwords = x;
 		return ws;
 	}
 	else {
-		return get_lastwordset(ws->below);
+		return get_blankwordset(ws->below,x+1);
 	}
 }
 
@@ -518,7 +858,7 @@ static PyObject *populate_wordset(PyObject *self, PyObject *args)
 #endif
 	char *mystring;
 	Py_ssize_t l, i;
-	int wordlength,idx_ws;
+	int idx,idx_ws;
 	struct WordSet* p_wordset;
 
 	if (!PyArg_ParseTuple(args, "iO", &idx_ws, &pystrings)) {
@@ -533,10 +873,12 @@ static PyObject *populate_wordset(PyObject *self, PyObject *args)
 		idx_ws = 0;
 	}
 	else if ((idx_ws < 0) || (idx_ws >= nwordsets)) {
-		p_wordset = get_lastwordset(all_wordsets);
-		p_wordset->below = new_WordSet();
-		idx_ws = nwordsets++;
-		p_wordset = p_wordset->below;
+		p_wordset = get_blankwordset(all_wordsets,0);
+		idx_ws = p_wordset->nwords;
+		p_wordset->nwords = 0;
+		if (idx_ws >= nwordsets) {
+			nwordsets = idx_ws + 1;
+		}
 	}
 	else {
 		p_wordset = get_xwordset(all_wordsets,idx_ws);
@@ -546,24 +888,26 @@ static PyObject *populate_wordset(PyObject *self, PyObject *args)
 		listobj = PyList_GetItem(pystrings,i);
 	#if PY_MAJOR_VERSION >= 3
 		listobj2 = PyUnicode_AsASCIIString(listobj);
-		wordlength = (int)PyBytes_Size(listobj2);
+		idx = (int)PyBytes_Size(listobj2);
 		mystring = PyBytes_AsString(listobj2);
 	#else
-		wordlength = (int)PyString_Size(listobj);
+		idx = (int)PyString_Size(listobj);
 		mystring = PyString_AsString(listobj);
 	#endif
 		//printf("Adding: %s\n",mystring);
-		addword(p_wordset,mystring,wordlength);
+		idx = addword(p_wordset,mystring,idx);
 	}
-	p_wordset->nwords += l;
+	p_wordset->nwords += (int)l;
 		
 	return Py_BuildValue("i", idx_ws);
 }
 
 static PyMethodDef module_methods[] = {
-	{"populate_wordset", populate_wordset, METH_VARARGS, pop_wdset_docstring},
+	{"populate_wordset", populate_wordset, METH_VARARGS, init_wdset_docstring},
 	{"lookup", lookup, METH_VARARGS, lookup_docstring},
 	{"clear_wordset", clear_wordset, METH_VARARGS,clr_wdset_docstring},
+	{"add_string", add_string, METH_VARARGS,add_string_docstring},
+	{"remove_string", remove_string, METH_VARARGS,rem_string_docstring},
 		{NULL, NULL, 0, NULL}
 };
 
