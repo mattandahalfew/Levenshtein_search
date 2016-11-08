@@ -1,4 +1,4 @@
-//Written by Matt Anderson. v1.4.1, November 7, 2016.
+//Written by Matt Anderson. v1.4.2, November 8, 2016.
 #include <Python.h>
 #if PY_MAJOR_VERSION >= 3
 	#define PyString_FromString		PyUnicode_FromString
@@ -397,8 +397,7 @@ extern void compare_right(struct Btree* curr_letter, int d_x, int q_x, int c_dis
 			}
 		}
 		else if ((c_dist+qwordlength-q_x) <= maxdist) {
-			nletterssofar = new_letterssofar(letterssofar,0,d_x+1);
-			nletterssofar[d_x] = 0;
+			nletterssofar = new_letterssofar(letterssofar,0,d_x);
 			wordlist->left = WordMatch_insert(wordlist->left,new_WordMatch(nletterssofar,(void*)p_nextletter,(unsigned char)(c_dist+qwordlength-q_x)));
 		}
 	}
@@ -462,8 +461,7 @@ extern void compare_down(struct Btree* curr_letter, int d_x, int q_x, int c_dist
 			}
 		}
 		else if ((c_dist+qwordlength-q_x) <= maxdist) {
-			nletterssofar = new_letterssofar(letterssofar,0,d_x+1);
-			nletterssofar[d_x] = 0;
+			nletterssofar = new_letterssofar(letterssofar,0,d_x);
 			wordlist->left = WordMatch_insert(wordlist->left,new_WordMatch(nletterssofar,(void*)p_nextletter,(unsigned char)(c_dist+qwordlength-q_x)));
 		}
 	}
@@ -528,8 +526,7 @@ extern void compare_letters(struct Btree* curr_letter, int d_x, int q_x, int c_d
 			}
 		}
 		else if ((c_dist+qwordlength-q_x) <= maxdist) {
-			nletterssofar = new_letterssofar(letterssofar,0,d_x+1);
-			nletterssofar[d_x] = 0;
+			nletterssofar = new_letterssofar(letterssofar,0,d_x);
 			wordlist->left = WordMatch_insert(wordlist->left,new_WordMatch(nletterssofar,(void*)p_nextletter,(unsigned char)(c_dist+qwordlength-q_x)));
 		}
 	}
