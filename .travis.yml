@@ -9,11 +9,12 @@ matrix:
     - 3.4
     - 3.5
 script:
-  - python setup.py sdist bdist_wheel
+  - python setup.py install
   - python testrun.py
 notifications:
   email: false
 after_success:
+  - python setup.py sdist bdist_wheel
   - pip install twine
 env:
   global:
