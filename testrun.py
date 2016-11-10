@@ -33,4 +33,4 @@ for i in range(0,len(results3)):
 	
 Levenshtein_search.clear_wordset(first_wordset)
 
-assert len(results3) == 1
+assert len(results3) == 1, "There were %i results" % len(results3)
