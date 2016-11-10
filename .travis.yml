@@ -1,13 +1,12 @@
 language: python
 sudo: false
-matrix:
-  os:
-    - linux
-    - osx
-  python:
-    - 2.7
-    - 3.4
-    - 3.5
+os:
+  - linux
+  - osx
+python:
+  - 2.7
+  - 3.4
+  - 3.5
 script:
   - python setup.py install
   - python testrun.py
