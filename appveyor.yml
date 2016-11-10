@@ -5,6 +5,7 @@ environment:
     - python: 27
     - python: 34
     - python: 35
+os: Visual Studio 2013
 platform:
   - x86
   - x64
