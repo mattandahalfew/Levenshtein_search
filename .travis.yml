@@ -13,8 +13,8 @@ script:
 notifications:
   email: false
 after_success:
-  - if [[ $TRAVIS_TAG && "$TRAVIS_OS_NAME" == "osx" ]]; then python setup.py sdist bdist_wheel; fi
-  - if [[ $TRAVIS_TAG && "$TRAVIS_OS_NAME" == "osx" ]]; then pip install twine; fi
+  - if [["$TRAVIS_OS_NAME" == "osx" ]]; then python setup.py sdist bdist_wheel; fi
+  - if [["$TRAVIS_OS_NAME" == "osx" ]]; then pip install twine; fi
 env:
   global:
     secure: gniZpg+0xkdJvEXntvXH8jClLBTCA+HF+0dAoEC2StNz6MNyFRoXQ1WwVC7cQExD5PN6gRidYhxp8YFHiJv5pXvWb+LNlI3IFHkwj024LMr6ThUnj4f0AV5WDD5ES4r1VSI77tKSoE+r5HMkeIOEzBl3TgR5Y/6xffOwmpJiqCxeVP2wUyCSr9ex5w0Mgvw3yAX/IWGJvy+FVKwLVXHx6rqZlelZoQNNGhP/DwR29RuzKmWB6mK9ZG6aHqd7eR9ggXeevq3rg9k5KE8hkV3fadC3PqyptIdt3AIuSiuquexk2879Wg48LpCZcZs8UyJIkflH2bd61Q8Iu3mmSyG4sMLrqM/PrCXhzb5K9Jr1E9mXrMv1dMS5YoHGX4fBxhPrheCz0WSYP2eDZ4Z+YwMXSDzTWl6/ZQAyoCKsvwbXpwHYIvoCvSQpN4eeqb0BAVv768MfhD8A3rrxNovKZcEqhQ3Zr6eCXYkUEruFbKOJEr0k0Q7NUb2SHBWI1Y5uNn1+7a75UlGTF3HUOC9R6114lJqFdcEgVHMMKeXB6yzLOmeDUIykmQUeP3y5R1/0b0S/UBw6HVnLOyfh9xJzhP+Sbj2LCfCcwuV2z1rA4n42d/Exrxm091sVfaTgRDZpB/4iBy0zcbZCHlpMOuoMZ0F0yLFn1xs8C9x8fBddtYkjtag=
