@@ -1,13 +1,13 @@
 environment:
   password:
     secure: f9xXcpXZkJpQhtqSdhI45A==	
+  matrix:  
+    - python: 27
+    - python: 34
+    - python: 35
 platform:
   - x86
   - x64
-python:
-  - 27
-  - 34
-  - 35
 install:
   - "SET PATH=C:\\Python%PYTHON%;c:\\Python%PYTHON%\\scripts;%PATH%"
   - echo "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64 > "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\amd64\vcvars64.bat"
