@@ -11,7 +11,7 @@ class LevenshteinTest(unittest.TestCase):
         second = Levenshtein_search.populate_wordset(-1, self.excerpt2)
         print(first, second)
         
-        assert first == second - 1
+        assert not(first == second)
 
 
     def test_query_overcoat(self):
