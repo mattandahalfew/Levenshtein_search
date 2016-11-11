@@ -57,15 +57,15 @@ install:
 
 build_script:
   # Build the compiled extension
-  - "%CMD_IN_ENV% python setup.py build"
+  - python setup.py build
 
 test_script:
   # Run the project tests
-  - "%CMD_IN_ENV% python testrun.py"
+  - python testrun.py
 
 after_test:
   # If tests are successful, create binary packages for the project.
-  - "%CMD_IN_ENV% python setup.py bdist_wheel"
+  - python setup.py bdist_wheel
   - echo [distutils]                                  > %USERPROFILE%\\.pypirc
   - echo index-servers =                             >> %USERPROFILE%\\.pypirc
   - echo     pypi                                    >> %USERPROFILE%\\.pypirc
