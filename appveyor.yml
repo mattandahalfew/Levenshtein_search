@@ -7,8 +7,8 @@ environment:
     - PYTHON: "C:\\Python27"
       PYTHON_VERSION: "2.7.x"
       PYTHON_ARCH: "32"
-    - PYTHON: "C:\\Python27.10-x64"
-      PYTHON_VERSION: "2.7.10"
+    - PYTHON: "C:\\Python27-x64"
+      PYTHON_VERSION: "2.7.x"
       PYTHON_ARCH: "64"
     - PYTHON: "C:\\Python34"
       PYTHON_VERSION: "3.4.x"
@@ -65,6 +65,7 @@ test_script:
 
 after_test:
   # If tests are successful, create binary packages for the project.
+  - pip install wheel twine
   - python setup.py bdist_wheel
   - echo [distutils]                                  > %USERPROFILE%\\.pypirc
   - echo index-servers =                             >> %USERPROFILE%\\.pypirc
@@ -74,7 +75,6 @@ after_test:
   - echo username=mattandahalfew                     >> %USERPROFILE%\\.pypirc
   - echo password=%password%                         >> %USERPROFILE%\\.pypirc
   - set HOME=%USERPROFILE%
-  - pip install twine
   - twine upload dist\*
 
 
