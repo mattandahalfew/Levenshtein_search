@@ -53,7 +53,7 @@ for i in range(0,len(results2)):
 	print("%s" % results2[i][0]+": "+ str(results2[i][1])+", "+str(results2[i][2]))
 	
 print("Query word: %s" % q)
-for i in range(first_wordset,len(results3)):
+for i in range(0,len(results3)):
 	print("%s" % results3[i][0]+": "+ str(results3[i][1])+", "+str(results3[i][2]))
 ```
 The output of the lookup() function is a list of lists equal in length to the number of unique words returned by the search. For each unique word, the function retrieves the Levenshtein distance from your query word, and the term frequency of that word in the document.
