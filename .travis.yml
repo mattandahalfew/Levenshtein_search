@@ -33,8 +33,8 @@ after_success:
 - echo repository=https://pypi.python.org/pypi     >> ~/.pypirc
 - echo username=mattandahalfew                     >> ~/.pypirc
 - echo password=$PYPIPASSWORD                      >> ~/.pypirc
+- pip install wheel twine
 - python setup.py sdist bdist_wheel
-- pip install twine
 - twine upload dist/* --skip-existing
 env:
   global:
