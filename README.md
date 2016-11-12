@@ -1,6 +1,8 @@
 # Levenshtein_search
 By Matt Anderson. 2016
 
+[![Linux build](https://img.shields.io/travis/mattandahalfew/Levenshtein_search.svg?style=flat-square&label=Linux build)](https://travis-ci.org/mattandahalfew/Levenshtein_search)[![Mac OS X build](https://img.shields.io/travis/mattandahalfew/Levenshtein_search.svg?style=flat-square&label=Mac OS X build)](https://travis-ci.org/mattandahalfew/Levenshtein_search)[![Windows build](https://img.shields.io/appveyor/ci/mattandahalfew/levenshtein-search/master.svg?style=flat-square&label=Windows build)](https://ci.appveyor.com/project/mattandahalfew/levenshtein-search)
+
 Levenshtein_search is a Python module that stores any number of documents as Tries. It performs fuzzy searches for words in a document that are d distance away from a query word. Searches can also be used in conjunction with TF-IDF calculations. The term frequency (TF) is computed for each approximately matching word in the document, as well as the Levenshtein distance from your query word. The module was written in C and increases search speed by using graph search algorithms and minimizing the number of redundant comparisons.
 
 #Usage
