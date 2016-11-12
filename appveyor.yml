@@ -29,5 +29,5 @@ deploy_script:
   - set HOME=%USERPROFILE%
   - pip install wheel twine
   - python setup.py sdist bdist_wheel
-  - twine upload dist/*
+  - twine upload dist/* --skip-existing
 deploy : on
