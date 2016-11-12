@@ -12,36 +12,41 @@ class LevenshteinTest(unittest.TestCase):
         print(first, second)
         
         assert first != second
-
+		
+	def getKey(item):
+		return item[0]
 
     def test_query_overcoat(self):
         index = Levenshtein_search.populate_wordset(-1, self.excerpt1)
         results = Levenshtein_search.lookup(index, 'overcoat', 6)
-        assert results == [['overcoat', 0, 0.023809523809523808],
+		sorted(results, key=getKey)
+        assert results == sorted([['overcoat', 0, 0.023809523809523808],
                            ['went', 6, 0.023809523809523808],
                            ['cold', 6, 0.023809523809523808],
                            ['Versh', 6, 0.047619047619047616],
                            ['overshoes', 4, 0.047619047619047616],
-                           ['not', 6, 0.023809523809523808]]
+                           ['not', 6, 0.023809523809523808]], key=getKey)
 
         
         index = Levenshtein_search.populate_wordset(-1, self.excerpt2)
         results = Levenshtein_search.lookup(index, 'overcoat', 6)
-        assert results == [['Versh', 6, 0.044444444444444446],
+		sorted(results, key=getKey)
+        assert results == sorted([['Versh', 6, 0.044444444444444446],
                            ['overshoes', 4, 0.022222222222222223],
                            ['coat', 4, 0.022222222222222223],
                            ['out', 6, 0.044444444444444446],
-                           ['here', 6, 0.022222222222222223]]
+                           ['here', 6, 0.022222222222222223]], key=getKey)
 
     def test_remove_doc(self):
         index = Levenshtein_search.populate_wordset(-1, self.excerpt1)
         Levenshtein_search.remove_string(index, 'overcoat')
         results = Levenshtein_search.lookup(index, 'overcoat', 6)
-        assert results == [['went', 6, 0.024390243902439025],
+		sorted(results, key=getKey)
+        assert results == sorted([['went', 6, 0.024390243902439025],
                            ['cold', 6, 0.024390243902439025],
                            ['Versh', 6, 0.04878048780487805],
                            ['overshoes', 4, 0.04878048780487805],
-                           ['not', 6, 0.024390243902439025]]
+                           ['not', 6, 0.024390243902439025]], key=getKey)
 
     def test_clear(self):
         index = Levenshtein_search.populate_wordset(-1, self.excerpt1)
