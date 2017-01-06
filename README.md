@@ -85,4 +85,5 @@ Levenshtein_search algorithm:
 0.00019705373871 sec
 [['"philippe the original"', 0, 0.0011574074074074073], ['"philippe\'s the original"', 2, 0.0011574074074074073]]
 ```
-In the future, I will revise the algorithm to work better with large edit distances.
+##Upcoming
+Specialized O(number of nodes) algorithm for large edit distances
