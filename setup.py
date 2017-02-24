@@ -3,7 +3,7 @@ from setuptools import setup, Extension
 setup(
 name='Levenshtein_search',
 url='https://github.com/mattandahalfew/Levenshtein_search',
-version='1.4.2',
+version='1.4.3',
 author='Matt Anderson',
 author_email='manderson3606@gmail.com',
 description='Search through documents for approximately matching strings',

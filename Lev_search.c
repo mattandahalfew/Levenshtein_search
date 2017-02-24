@@ -1,4 +1,4 @@
-//Written by Matt Anderson. v1.4.2, November 8, 2016.
+//Written by Matt Anderson. v1.4.3, 2016 through February 24, 2017.
 #include <Python.h>
 #if PY_MAJOR_VERSION >= 3
 	#define PyString_FromString		PyUnicode_FromString
@@ -578,12 +578,17 @@ static struct WordLList* generate_wordlist(struct WordSet* p_wordset, char* quer
 	int wordlength = 0;
 	struct WordLList* p_wordllist;
 
-	while (query_word[wordlength]!=0) {
-		wordlength++;
+	if ((p_wordset->nwords) > 0) {
+		while (query_word[wordlength]!=0) {
+			wordlength++;
+		}
+		
+		compare_letters(p_wordset->firstletter,0,0,0,maxdist,query_word,wordlength,NULL,p_wordlist);
+		p_wordllist = gen_wordllist(p_wordlist);
 	}
-	
-	compare_letters(p_wordset->firstletter,0,0,0,maxdist,query_word,wordlength,NULL,p_wordlist);
-	p_wordllist = gen_wordllist(p_wordlist);
+	else {
+		p_wordllist = new_WordLList(p_wordlist);
+	}
 	free((void*)p_wordlist);
 	
 	return p_wordllist;
@@ -864,6 +869,7 @@ static PyObject *populate_wordset(PyObject *self, PyObject *args)
 	}
 	l = PyList_Size(pystrings);
 	
+	//printf("all_wordsets address: %p\n",all_wordsets);
 	if (all_wordsets==NULL) {
 		all_wordsets = new_WordSet();
 		p_wordset = all_wordsets;
