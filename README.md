@@ -1,5 +1,5 @@
 # Levenshtein_search
-By Matt Anderson. 2016
+By Matt Anderson. 2016-2017
 
 [![Linux build](https://img.shields.io/travis/mattandahalfew/Levenshtein_search.svg?style=flat-square&label=Linux build)](https://travis-ci.org/mattandahalfew/Levenshtein_search)[![Mac OS X build](https://img.shields.io/travis/mattandahalfew/Levenshtein_search.svg?style=flat-square&label=Mac OS X build)](https://travis-ci.org/mattandahalfew/Levenshtein_search)[![Windows build](https://img.shields.io/appveyor/ci/mattandahalfew/levenshtein-search/master.svg?style=flat-square&label=Windows build)](https://ci.appveyor.com/project/mattandahalfew/levenshtein-search)
 
