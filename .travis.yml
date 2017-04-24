@@ -12,6 +12,20 @@ matrix:
   - os: osx
     language: generic
     env: BREW_PYTHON='python3'
+  - services:
+      - docker
+    env: DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64
+    before_install:
+      - if [[ $TRAVIS_TAG ]]; then bash .manylinux.sh; fi
+      - exit 0
+  - services:
+      - docker
+    env:
+      - DOCKER_IMAGE=quay.io/pypa/manylinux1_i686
+      - PRE_CMD=linux32
+    before_install:
+      - if [[ $TRAVIS_TAG ]]; then bash .manylinux.sh; fi
+      - exit 0
 before_install:
   - if [[ $BREW_PYTHON == 'python3' ]]; then
     brew update;
@@ -35,7 +49,7 @@ after_success:
 - echo password=$PYPIPASSWORD                      >> ~/.pypirc
 - pip install wheel twine
 - python setup.py sdist bdist_wheel
-- twine upload dist/* --skip-existing
+- if [[ $TRAVIS_TAG ]]; then twine upload dist/* --skip-existing; fi
 env:
   global:
   - secure: d0/glazdTbaG4HTqE29j7RNycOG2a1gLxyNsoAE5/WtiKmIUJ9FK9pRiWcJ1553eFH8lkTIW+uATOKXd7zzoa52VSkl/tEh0+v49uvNy8fNWdY1/GJOMhAvHTPrbnrOSv2VpyfL9Hr68B23bgBelcmJ6pfdcQmGeLvZdLijLE1s+RQnl934komfegg/gh0/7WVx6abP9KxAKA0ekzHTEWU8U2lfLepzI1W6cRWkLdBj9fIwlgSyzh1gM0BzUhnBlL2VcfxrZszt18+2w4iyaXck1moX3XAkvMT7b68JVw9Mp249RE/JgqWOUzJ/im0QsfKKfq5K64IavKHX8SXSubqCaM1/D4Pnn7/S4I3bgZfsskzh67hZccsZQQenLqnCGiW8hmQKJgfMA0Y8/mn6KYOLs7tjW10aeMYIG9sJB+QqX2Eq2EGWB9INQtETpi828weBZpVE1AWONIJ5hZxSIdAtINNSc8ToyU5DBhQ1hTe1KmtGnkV9/81RXAmqRANrJwyxiAnnf5G+JeiWCOluNNV+MqReWMdbehAoqe6lI5Vr3ATqP5QNRhu1WumurNeXvK/GSIc05nsRbD/uU9KXhDosYxwb3szXWu/GO7EpclOWGYLX6QnWd4BrRASTdumDtLvy079SoGe1NN7r3nUBiQzgE4qBa1qGNmbuSTVBL3MU=
