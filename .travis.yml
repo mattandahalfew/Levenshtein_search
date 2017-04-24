@@ -12,6 +12,20 @@ matrix:
   - os: osx
     language: generic
     env: BREW_PYTHON='python3'
+  - services:
+      - docker
+    env: DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64
+    before_install:
+      - if [[ $TRAVIS_TAG ]]; then bash .manylinux.sh; fi
+      - exit 0
+  - services:
+      - docker
+    env:
+      - DOCKER_IMAGE=quay.io/pypa/manylinux1_i686
+      - PRE_CMD=linux32
+    before_install:
+      - if [[ $TRAVIS_TAG ]]; then bash .manylinux.sh; fi
+      - exit 0
 before_install:
   - if [[ $BREW_PYTHON == 'python3' ]]; then
     brew update;
