@@ -8,9 +8,21 @@ matrix:
     python: 2.7
   - os: osx
     language: generic
-    env: BREW_PYTHON='python'
+    before_install:
+      - brew update
+      - brew upgrade python
+      - brew install python2
+      - pip install virtualenv
+      - python2 -m virtualenv env
+      - source env/bin/activate
+    env: BREW_PYTHON='python2'
   - os: osx
     language: generic
+    before_install:
+      - brew update
+      - brew upgrade python
+      - python3 -m venv env
+      - source env/bin/activate
     env: BREW_PYTHON='python3'
   - services:
       - docker
@@ -44,7 +56,6 @@ after_success:
 - echo [distutils]                                  > ~/.pypirc
 - echo index-servers = pypi                        >> ~/.pypirc
 - echo [pypi]                                      >> ~/.pypirc
-- echo repository=https://pypi.python.org/pypi     >> ~/.pypirc
 - echo username=mattandahalfew                     >> ~/.pypirc
 - echo password=$PYPIPASSWORD                      >> ~/.pypirc
 - pip install wheel twine
