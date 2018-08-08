@@ -6,4 +6,4 @@ docker pull $DOCKER_IMAGE
 
 docker run --rm -v `pwd`:/io $DOCKER_IMAGE $PRE_CMD /io/.manylinux-install.sh
 
-pip install twine && twine upload -u mattandahalfew -p $PYPIPASSWORD wheelhouse/*
+pip install twine && twine upload -u mattandahalfew -p $PYPIPASSWORD wheelhouse/* --skip-existing
