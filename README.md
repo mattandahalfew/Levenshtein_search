@@ -5,7 +5,7 @@ By Matt Anderson. 2016-2017
 
 Levenshtein_search is a Python module that stores any number of documents as ternary search trees. It performs fuzzy searches for words in a document that are d distance away from a query word. Searches can also be used in conjunction with TF-IDF calculations. The term frequency (TF) is computed for each approximately matching word in the document, as well as the Levenshtein distance from your query word. The module was written in C and increases search speed by using graph search algorithms and minimizing the number of redundant comparisons.
 
-##Usage
+## Usage
 ```python
 import Levenshtein_search
 
@@ -44,7 +44,7 @@ Levenshtein_search.clear_wordset(last_wordset)
 
 To clear a document from memory, use the clear_wordset(x) function where x is a non-negative integer representing the document's index. After clearing a document, x, documents retain their previous index (this is different from v1.3).
 
-##Output
+## Output
 ```python
 print("Query word: %s" % q)
 for i in range(0,len(results1)):
@@ -71,10 +71,10 @@ overshoes: 4, 0.0487804878049
 ```
 If there is any word in the results that is the same as your query word, it is guaranteed to be the first item of the result list. All other words are in no particular order.
 
-##Installation
+## Installation
 pip install Levenshtein-search
 
-##Preliminary benchmarking
+## Preliminary benchmarking
 In a [timed test](https://github.com/mattandahalfew/Benchmark-of-Levenshtein_search) of this module with Levenshtein edit distance of 2, it was approx. 10x faster than using an equivalent search in PostgreSQL.
 ```bash
 select name from restaurant_nophone_training where levenshtein_less_equal(name, '"philippe the original"', 2) <= 2;
@@ -85,5 +85,5 @@ Levenshtein_search algorithm:
 0.00019705373871 sec
 [['"philippe the original"', 0, 0.0011574074074074073], ['"philippe\'s the original"', 2, 0.0011574074074074073]]
 ```
-##Upcoming
+## Upcoming
 Specialized O(number of nodes) algorithm for large edit distances
