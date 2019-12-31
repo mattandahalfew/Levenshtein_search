@@ -1,4 +1,4 @@
-//Written by Matt Anderson. v1.4.3, 2016 through February 24, 2017.
+//Written by Matt Anderson. v1.4.5, 2016 through December 30, 2019.
 #include <Python.h>
 #if PY_MAJOR_VERSION >= 3
 	#define PyString_FromString		PyUnicode_FromString
@@ -26,11 +26,11 @@ struct Btree {
 
 static struct Btree* blank_Btree() {
 	struct Btree* outp = (struct Btree*)malloc(sizeof(struct Btree));
-	
+
 	outp->root = NULL;
 	outp->numels = 0;
 	outp->possibleletters = NULL;
-	
+
 	return outp;
 }
 
@@ -46,12 +46,12 @@ int nwordsets = 0;
 
 static struct WordSet* new_WordSet() {
 	struct WordSet* outp = (struct WordSet*)malloc(sizeof(struct WordSet));
-	
+
 	outp->firstletter = blank_Btree();
 	outp->nwords = 0;
 	outp->nunique_words = 0;
 	outp->below = NULL;
-	
+
 	return outp;
 }
 
@@ -71,7 +71,7 @@ static struct WordMatch* new_WordMatch(char* newword, void* unique_p, unsigned c
 	p_wordmatch->myword = newword;
 	p_wordmatch->unique_id = unique_p;
 	p_wordmatch->lev_dist = dist;
-	
+
 	return p_wordmatch;
 }
 
@@ -92,7 +92,7 @@ static struct WordMatch* WordMatch_insert(struct WordMatch* p_node, struct WordM
 		free((void*)(toadd->myword));
 		free((void*)toadd);
 	}
-	
+
 	return p_node;
 }
 
@@ -107,7 +107,7 @@ static struct WordLList* new_WordLList(struct WordMatch* p_wordmatch) {
 	outp->length = 0;
 	outp->myword = p_wordmatch;
 	outp->below = NULL;
-	
+
 	return outp;
 }
 
@@ -139,7 +139,7 @@ struct WordStats {
 static struct WordStats* new_WordStats() {
 	struct WordStats* outp = (struct WordStats*)malloc(sizeof(struct WordStats));
 	outp->noccurrences = 0;
-	
+
 	return outp;
 }
 
@@ -159,7 +159,7 @@ static struct Node* rec_insert(struct Node* node, char tobeinserted, void* nextl
 
 static void* insert(struct Btree* btree, char tobeinserted) {
 	void* nextletter;
-	
+
 	if (tobeinserted==0) {
 		nextletter = (void*)new_WordStats();
 	}
@@ -169,12 +169,12 @@ static void* insert(struct Btree* btree, char tobeinserted) {
 
 	btree->root = rec_insert(btree->root,tobeinserted,nextletter);
 	btree->numels += 1;
-	
+
 	if ((btree->possibleletters) != NULL) {
 		free((void*)(btree->possibleletters));
 		btree->possibleletters = NULL;
 	}
-	
+
 	return nextletter;
 }
 
@@ -191,7 +191,7 @@ static int addword(struct WordSet* p_wordset, char* p_string, int wordlength) {
 	int i;
 	char isnew = 0;
 	struct WordStats* p_wordstats;
-	
+
 	for (i = 0; i < wordlength; i++) {
 		nextlettertree = nextlett_lookup(curr_letter->root,p_string[i]);
 		if (nextlettertree==NULL) {
@@ -205,26 +205,26 @@ static int addword(struct WordSet* p_wordset, char* p_string, int wordlength) {
 		isnew = 1;
 		nextlettertree = insert(curr_letter,p_string[i]);
 	}
-	
+
 	p_wordstats = (struct WordStats*)nextlettertree;
 	p_wordstats->noccurrences += 1;
 	if (isnew!=0) {
 		p_wordstats->idx = p_wordset->nunique_words;
 		p_wordset->nunique_words += 1;
 	}
-	
+
 	return p_wordstats->idx;
 }
 
 static char* new_letterssofar(char* letterssofar, char newletter, int d_x) {
 	int i;
 	char* newletterssofar = (char *)malloc((d_x + 1) * sizeof(char));;
-	
+
 	for (i = 0; i < d_x; i++) {
 		*(newletterssofar++) = *(letterssofar++);
 	}
 	*newletterssofar = newletter;
-	
+
 	return newletterssofar - d_x;
 }
 
@@ -246,15 +246,15 @@ static void rec_getletters(struct Node** letterarray, int* p_idxletter, struct N
 static struct Node** getpossibleletters(struct Btree* btree) {
 	struct Node** possibleletters = (struct Node**)malloc((btree->numels) * sizeof(struct Node*));
 	int idxletter = 0;
-	
+
 	rec_getletters(possibleletters,&idxletter,btree->root);
-	
+
 	return possibleletters;
 }
 
 static struct Node* replace_max(struct Node* node) {
 	struct Node* maxnode;
-	
+
 	if (node->right == NULL) {
 		return node;
 	}
@@ -269,7 +269,7 @@ static struct Node* replace_max(struct Node* node) {
 
 static struct Node* delete_node(struct Node* node, char char_delete) {
 	struct Node* replacement_node;
-	
+
 	if (char_delete == node->myletter) {
 		if (node->left == NULL) {
 			replacement_node = node->right;
@@ -296,7 +296,7 @@ static void* delete_Btree(struct Btree* this_letter, int q_x, char* p_word, char
 	void* nextletter = nextlett_lookup(this_letter->root,p_word[q_x]);
 	void* wordstats;
 
-	if (p_word[q_x] == 0) {		
+	if (p_word[q_x] == 0) {
 		if (this_letter->numels == 1) {
 			free((void*)this_letter->root);
 			if (this_letter->possibleletters != NULL) {
@@ -331,7 +331,7 @@ static void* delete_Btree(struct Btree* this_letter, int q_x, char* p_word, char
 				if (this_letter->possibleletters != NULL) {
 					free((void*)(this_letter->possibleletters));
 					this_letter->possibleletters = NULL;
-				}				
+				}
 				*b_issafe = 0;
 			}
 		}
@@ -342,7 +342,7 @@ static void* delete_Btree(struct Btree* this_letter, int q_x, char* p_word, char
 static void compare_same(struct Btree* curr_letter, int d_x, unsigned char lev_dist, char* query_letter, char* letterssofar, struct WordMatch* wordlist) {
 	char new_qletter = *query_letter;
 	void* p_nextletter = nextlett_lookup(curr_letter->root,new_qletter);
-	
+
 	if (new_qletter==0) {
 		if (p_nextletter != NULL) {
 			letterssofar = add_letterssofar(letterssofar,0,d_x);
@@ -372,17 +372,17 @@ extern void compare_right(struct Btree* curr_letter, int d_x, int q_x, int c_dis
 	struct Btree* p_nextletter;
 	char new_nletter,new_qletter;
 	char* nletterssofar;
-		
+
 	if (c_dist == maxdist) {
 		compare_same(curr_letter,d_x,(unsigned char)c_dist,query_word+q_x,letterssofar,wordlist);
 		return;
 	}
-	
+
 	new_qletter = query_word[q_x];
 
 	if (curr_letter->possibleletters == NULL) curr_letter->possibleletters = getpossibleletters(curr_letter);
 	p_possibleletters = curr_letter->possibleletters;
-	
+
 	n = (curr_letter->numels) - 1;
 	for (i = 0; i < n; i++) {
 		letternode = *(p_possibleletters++);
@@ -422,7 +422,7 @@ extern void compare_right(struct Btree* curr_letter, int d_x, int q_x, int c_dis
 	}
 	else {
 		free((void*)letterssofar);
-	}	
+	}
 }
 
 extern void compare_down(struct Btree* curr_letter, int d_x, int q_x, int c_dist, int maxdist, char* query_word, int qwordlength, char* letterssofar, struct WordMatch* wordlist) {
@@ -432,7 +432,7 @@ extern void compare_down(struct Btree* curr_letter, int d_x, int q_x, int c_dist
 	struct Btree* p_nextletter;
 	char new_nletter,new_qletter;
 	char* nletterssofar;
-	
+
 	if (c_dist == maxdist) {
 		compare_same(curr_letter,d_x,(unsigned char)c_dist,query_word+q_x,letterssofar,wordlist);
 		return;
@@ -441,7 +441,7 @@ extern void compare_down(struct Btree* curr_letter, int d_x, int q_x, int c_dist
 
 	if (curr_letter->possibleletters == NULL) curr_letter->possibleletters = getpossibleletters(curr_letter);
 	p_possibleletters = curr_letter->possibleletters;
-	
+
 	n = (curr_letter->numels) - 1;
 	for (i = 0; i < n; i++) {
 		letternode = *(p_possibleletters++);
@@ -496,17 +496,17 @@ extern void compare_letters(struct Btree* curr_letter, int d_x, int q_x, int c_d
 	struct Btree* p_nextletter;
 	char new_nletter,new_qletter;
 	char* nletterssofar;
-		
+
 	if (c_dist == maxdist) {
 		compare_same(curr_letter,d_x,(unsigned char)c_dist,query_word+q_x,letterssofar,wordlist);
 		return;
 	}
-	
+
 	new_qletter = query_word[q_x];
 
 	if (curr_letter->possibleletters == NULL) curr_letter->possibleletters = getpossibleletters(curr_letter);
 	p_possibleletters = curr_letter->possibleletters;
-	
+
 	n = (curr_letter->numels) - 1;
 	for (i = 0; i < n; i++) {
 		letternode = *(p_possibleletters++);
@@ -567,10 +567,10 @@ static void traverse_wordlist(struct WordMatch* node, struct WordLList* dest) {
 
 static struct WordLList* gen_wordllist(struct WordMatch* p_wordlist) {
 	struct WordLList* outp = new_WordLList(NULL);
-	
+
 	traverse_wordlist(p_wordlist->left,outp);
-	
-	return outp;	
+
+	return outp;
 }
 
 static struct WordLList* generate_wordlist(struct WordSet* p_wordset, char* query_word, int maxdist) {
@@ -582,7 +582,7 @@ static struct WordLList* generate_wordlist(struct WordSet* p_wordset, char* quer
 		while (query_word[wordlength]!=0) {
 			wordlength++;
 		}
-		
+
 		compare_letters(p_wordset->firstletter,0,0,0,maxdist,query_word,wordlength,NULL,p_wordlist);
 		p_wordllist = gen_wordllist(p_wordlist);
 	}
@@ -590,7 +590,7 @@ static struct WordLList* generate_wordlist(struct WordSet* p_wordset, char* quer
 		p_wordllist = new_WordLList(p_wordlist);
 	}
 	free((void*)p_wordlist);
-	
+
 	return p_wordllist;
 }
 
@@ -618,7 +618,7 @@ static void rec_clear(struct Node* node) {
 
 static char b_samestring(char* a, char* b) {
 	char outp = 1;
-	
+
 	while ((outp!=0) && ((*a!=0) || (*b!=0))) {
 		if (*a==*b) {
 			a++;
@@ -628,7 +628,7 @@ static char b_samestring(char* a, char* b) {
 			outp = 0;
 		}
 	}
-	
+
 	return outp;
 }
 
@@ -637,7 +637,7 @@ static void wordinfront(struct WordLList* llist, char* frontword) {
 	int len = llist->length;
 	struct WordLList* temp_llist;
 	struct WordLList* p_llist = llist;
-	
+
 	for (i = 0; i < len; i++) {
 		temp_llist = p_llist->below;
 		if (b_samestring(temp_llist->myword->myword,frontword)!=0) {
@@ -649,7 +649,7 @@ static void wordinfront(struct WordLList* llist, char* frontword) {
 		else {
 			p_llist = temp_llist;
 		}
-	}	
+	}
 }
 
 //The term-frequency is computed in this function
@@ -662,9 +662,9 @@ static PyObject* llist2pylist(struct WordLList* llist, int totalwords, char* fro
 	struct WordStats* p_word_freq;
 	double n = (double)totalwords;
 	double f;
-	
+
 	wordinfront(llist,frontword);
-	
+
 	list = PyList_New(len);
 	p_llist = llist->below;
 	free((void*)llist);
@@ -674,7 +674,7 @@ static PyObject* llist2pylist(struct WordLList* llist, int totalwords, char* fro
 		wf_pair = PyList_New(3);
 		PyList_SetItem(wf_pair,0,PyString_FromString(p_wordmatch->myword));
 		PyList_SetItem(wf_pair,1,Py_BuildValue("b", p_wordmatch->lev_dist));
-		
+
 		p_word_freq = (struct WordStats*)(p_wordmatch->unique_id);
 		f = ((double)(p_word_freq->noccurrences)) / n;
 		PyList_SetItem(wf_pair,2,Py_BuildValue("d", f));
@@ -682,13 +682,13 @@ static PyObject* llist2pylist(struct WordLList* llist, int totalwords, char* fro
 		PyList_SetItem(list, i, wf_pair);
 		temp_llist = p_llist;
 		p_llist = p_llist->below;
-		
+
 		free((void*)p_wordmatch->myword);
 		free((void*)p_wordmatch);
 		free((void*)temp_llist);
 	}
-	
-	return list;	
+
+	return list;
 }
 
 //Returns null if x >= the number of WordSets. Otherwise returns the appropriate WordSet.
@@ -703,14 +703,14 @@ static struct WordSet* get_xwordset(struct WordSet* ws, int x) {
 
 static struct WordSet* get_pwordset(int idx_ws) {
 	struct WordSet* p_wordset;
-	
+
 	if ((all_wordsets==NULL) || (idx_ws<0) || (idx_ws>=nwordsets)) {
 		p_wordset = NULL;
 	}
 	else {
 		p_wordset = get_xwordset(all_wordsets,idx_ws);
 	}
-	
+
 	return p_wordset;
 }
 
@@ -718,7 +718,7 @@ static PyObject* clear_wordset(PyObject *self, PyObject *args) {
 	struct WordSet *p_wordset;
 	struct Btree* p_firstletter;
 	int idx_ws;
-	
+
 	if (!PyArg_ParseTuple(args, "i", &idx_ws))
 		Py_RETURN_NONE;
 	//printf("Deleting letters...\n");
@@ -736,18 +736,18 @@ static PyObject* clear_wordset(PyObject *self, PyObject *args) {
 		p_firstletter->numels = 0;
 		p_wordset->nwords = -1;
 	}
-	
+
 	Py_RETURN_NONE;
 }
 
 static int get_length(char* p_string) {
 	int l = 0;
-	
+
 	while (*p_string != 0) {
 		p_string++;
 		l++;
 	}
-	
+
 	return l;
 }
 
@@ -757,17 +757,17 @@ static PyObject* add_string(PyObject *self, PyObject *args) {
 	int wordindex = -1;
 	int idx_ws = 0;
 	struct WordSet* p_wordset;
-	
+
 	if (!PyArg_ParseTuple(args, "is", &idx_ws, &pystring))
 		Py_RETURN_NONE;
-	
-	p_wordset = get_pwordset(idx_ws);	
+
+	p_wordset = get_pwordset(idx_ws);
 	if (p_wordset!=NULL) {
 		mystring = (char*)pystring;
 		wordindex = addword(p_wordset,mystring,get_length(mystring));
 		p_wordset->nwords += 1;
 	}
-		
+
 	return Py_BuildValue("i", wordindex);
 }
 
@@ -779,10 +779,10 @@ static PyObject* remove_string(PyObject *self, PyObject *args) {
 	struct WordLList *p_wordllist,*temp_wordllist;
 	struct WordStats* p_wordstats;
 	char b_issafe = 1;
-	
+
 	if (!PyArg_ParseTuple(args, "is", &w_idx, &pystring))
 		Py_RETURN_NONE;
-	
+
 	p_wordset = get_pwordset(w_idx);
 	if (p_wordset != NULL) {
 		mystring = (char*)pystring;
@@ -799,7 +799,7 @@ static PyObject* remove_string(PyObject *self, PyObject *args) {
 			free((void*)temp_wordllist);
 			free((void*)(p_wordllist->myword->myword));
 			free((void*)(p_wordllist->myword));
-			free((void*)p_wordllist);		
+			free((void*)p_wordllist);
 			//printf("Deleting word\n");
 			p_wordstats = (struct WordStats*)delete_Btree(p_wordset->firstletter,0,mystring,&b_issafe);
 			p_wordset->nwords -= p_wordstats->noccurrences;
@@ -821,16 +821,16 @@ static PyObject* lookup(PyObject *self, PyObject *args)
 	struct WordLList* p_wordllist;
 	int maxdist,idx_ws;
 	struct WordSet* p_wordset;
-	
+
 	if (!PyArg_ParseTuple(args, "isi", &idx_ws, &pystring, &maxdist))
 		Py_RETURN_NONE;
-	
-	p_wordset = get_pwordset(idx_ws);	
+
+	p_wordset = get_pwordset(idx_ws);
 	if (p_wordset!=NULL) {
 		mystring = (char*)pystring;
 		//printf("Lookup word: %s\n",mystring);
 		p_wordllist = generate_wordlist(p_wordset,mystring,maxdist);
-		//printf("Number of words in doc: %i\n",p_wordset->nwords);		
+		//printf("Number of words in doc: %i\n",p_wordset->nwords);
 		return llist2pylist(p_wordllist,p_wordset->nwords,mystring);
 	}
 	else {
@@ -868,7 +868,7 @@ static PyObject *populate_wordset(PyObject *self, PyObject *args)
 		return Py_BuildValue("i", -1);
 	}
 	l = PyList_Size(pystrings);
-	
+
 	//printf("all_wordsets address: %p\n",all_wordsets);
 	if (all_wordsets==NULL) {
 		all_wordsets = new_WordSet();
@@ -902,7 +902,7 @@ static PyObject *populate_wordset(PyObject *self, PyObject *args)
 		idx = addword(p_wordset,mystring,idx);
 	}
 	p_wordset->nwords += (int)l;
-		
+
 	return Py_BuildValue("i", idx_ws);
 }
 
