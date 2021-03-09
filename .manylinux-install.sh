@@ -9,7 +9,8 @@ for PYBIN in /opt/python/*/bin; do
        [[ "${PYBIN}" == *"cp34"* ]] || \
        [[ "${PYBIN}" == *"cp35"* ]] || \
        [[ "${PYBIN}" == *"cp36"* ]] || \
-       [[ "${PYBIN}" == *"cp37"* ]]; then
+       [[ "${PYBIN}" == *"cp37"* ]] || \
+       [[ "${PYBIN}" == *"cp38"* ]]; then
         "${PYBIN}/pip" install -e /io/
         "${PYBIN}/pip" wheel /io/ -w wheelhouse/
 	rm -rf /io/build /io/*.egg-info
@@ -20,4 +21,3 @@ done
 for whl in wheelhouse/Levenshtein*.whl; do
     auditwheel repair "$whl" -w /io/wheelhouse/
 done
-

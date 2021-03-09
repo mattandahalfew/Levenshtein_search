@@ -3,15 +3,14 @@ sudo: false
 matrix:
   include:
   - os: linux
-    python: 3.6
+    python: 3.8
   - os: linux
     python: 2.7
   - os: osx
     language: generic
     before_install:
       - brew update
-      - brew upgrade python
-      - brew install python2
+      - brew upgrade python@2
       - pip install virtualenv
       - python2 -m virtualenv env
       - source env/bin/activate
@@ -20,7 +19,6 @@ matrix:
     language: generic
     before_install:
       - brew update
-      - brew upgrade python
       - python3 -m venv env
       - source env/bin/activate
     env: BREW_PYTHON='python3'

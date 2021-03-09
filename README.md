@@ -1,5 +1,5 @@
 # Levenshtein_search
-By Matt Anderson. 2016-2017
+By Matt Anderson. 2016-2019
 
 [![Linux build](https://img.shields.io/travis/mattandahalfew/Levenshtein_search.svg?style=flat-square&label=Linux%20build)](https://travis-ci.org/mattandahalfew/Levenshtein_search)[![Mac OS X build](https://img.shields.io/travis/mattandahalfew/Levenshtein_search.svg?style=flat-square&label=Mac%20OS%20X%20build)](https://travis-ci.org/mattandahalfew/Levenshtein_search)[![Windows build](https://img.shields.io/appveyor/ci/mattandahalfew/levenshtein-search/master.svg?style=flat-square&label=Windows%20build)](https://ci.appveyor.com/project/mattandahalfew/levenshtein-search)
 
@@ -49,11 +49,11 @@ To clear a document from memory, use the clear_wordset(x) function where x is a 
 print("Query word: %s" % q)
 for i in range(0,len(results1)):
 	print("%s" % results1[i][0]+": "+ str(results1[i][1])+", "+str(results1[i][2]))
-	
+
 print("Query word: %s" % q)
 for i in range(0,len(results2)):
 	print("%s" % results2[i][0]+": "+ str(results2[i][1])+", "+str(results2[i][2]))
-	
+
 print("Query word: %s" % q)
 for i in range(0,len(results3)):
 	print("%s" % results3[i][0]+": "+ str(results3[i][1])+", "+str(results3[i][2]))
