@@ -13,4 +13,5 @@ install_requires=[],
 classifiers=[
 	'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: Scientific/Engineering',
-        'Topic :: Scientific/Engineering :: Information Analysis'])
+        'Topic :: Scientific/Engineering :: Information Analysis',
+        'License :: GNU General Public License v3',])
