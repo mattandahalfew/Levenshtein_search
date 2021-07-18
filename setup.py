@@ -14,4 +14,4 @@ classifiers=[
 	'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: Scientific/Engineering',
         'Topic :: Scientific/Engineering :: Information Analysis',
-        'License :: GNU General Public License v3',])
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)'])
