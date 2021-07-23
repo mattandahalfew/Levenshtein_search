@@ -36,6 +36,16 @@ matrix:
     before_install:
       - bash .manylinux.sh
       - exit 0
+  - services:
+      - docker
+    dist: xenial
+    virt: lxd
+    group: edge
+    arch: arm64-graviton2
+    env: DOCKER_IMAGE=quay.io/pypa/manylinux2014_aarch64
+    before_install:
+      - bash .manylinux.sh
+      - exit 0
 before_install:
   - if [[ $BREW_PYTHON == 'python3' ]]; then
     brew update;
