@@ -1,14 +1,8 @@
-Levenshtein_search.egg-info/top_level.txt
-Levenshtein_search.egg-info/SOURCES.txt
-pcfile_test4.py
-dist/Levenshtein_search-1.3-py2.7-linux-x86_64.egg
+Levenshtein_search.egg-info/*
+dist/*
 *.so
-build/temp.linux-x86_64-2.7/Lev_search.o
-Levenshtein_search.egg-info/dependency_links.txt
 *.whl
 *.gz
-Levenshtein_search.egg-info/PKG-INFO
 *.lib
-build/lib.win-amd64-3.5/Levenshtein_search.cp35-win_amd64.pyd
 *.obj
-build/temp.win-amd64-3.5/Release/Levenshtein_search.cp35-win_amd64.exp
+build/*
