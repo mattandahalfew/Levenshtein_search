@@ -12,6 +12,12 @@ environment:
     - python: 37-x64
     - python: 38
     - python: 38-x64
+    - python: 39
+    - python: 39-x64
+    - python: 310
+    - python: 310-x64
+    - python: 311
+    - python: 311-x64
 install:
   - "SET PATH=C:\\Python%PYTHON%;c:\\Python%PYTHON%\\scripts;%PATH%"
   - echo "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64 > "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\amd64\vcvars64.bat"
