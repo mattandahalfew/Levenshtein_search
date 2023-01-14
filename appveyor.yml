@@ -1,3 +1,4 @@
+build_script:
 environment:
   password:
     secure: f9xXcpXZkJpQhtqSdhI45A==
@@ -23,20 +24,20 @@ install:
   - echo "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64 > "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\amd64\vcvars64.bat"
   - pip install -r requirements.txt
   - pip install -e .
+build: false
+test_script:
+  - nosetests
+on_success:
+  - echo Build succesful!
 build_script:
-    test_script:
-      - nosetests
-    on_success:
-      - echo Build succesful!
-    deploy_script:
-      - echo [distutils]                                  > %USERPROFILE%\\.pypirc
-      - echo index-servers =                             >> %USERPROFILE%\\.pypirc
-      - echo     pypi                                    >> %USERPROFILE%\\.pypirc
-      - echo [pypi]                                      >> %USERPROFILE%\\.pypirc
-      - echo username=mattandahalfew                     >> %USERPROFILE%\\.pypirc
-      - echo password=%password%                         >> %USERPROFILE%\\.pypirc
-      - set HOME=%USERPROFILE%
-      - pip install wheel twine
-      - python setup.py sdist bdist_wheel
-      - twine upload dist/* --skip-existing
-    deploy : on
+  - echo [distutils]                                  > %USERPROFILE%\\.pypirc
+  - echo index-servers =                             >> %USERPROFILE%\\.pypirc
+  - echo     pypi                                    >> %USERPROFILE%\\.pypirc
+  - echo [pypi]                                      >> %USERPROFILE%\\.pypirc
+  - echo username=mattandahalfew                     >> %USERPROFILE%\\.pypirc
+  - echo password=%password%                         >> %USERPROFILE%\\.pypirc
+  - set HOME=%USERPROFILE%
+  - pip install wheel twine
+  - python setup.py sdist bdist_wheel
+  - twine upload dist/* --skip-existing
+deploy : on
