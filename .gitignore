@@ -6,4 +6,3 @@ dist/*
 *.lib
 *.obj
 build/*
-.idea/*
