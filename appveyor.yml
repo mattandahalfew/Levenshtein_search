@@ -28,7 +28,7 @@ test_script:
   - nosetests
 on_success:
   - echo Build succesful!
-build_script:
+deploy_script:
   - echo [distutils]                                  > %USERPROFILE%\\.pypirc
   - echo index-servers =                             >> %USERPROFILE%\\.pypirc
   - echo     pypi                                    >> %USERPROFILE%\\.pypirc
