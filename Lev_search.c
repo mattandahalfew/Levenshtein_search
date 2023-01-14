@@ -928,9 +928,9 @@ static PyModuleDef module_def = {
 	NULL
 };
 
-PyMODINIT_FUNC PyInit_Levenshtein_search()
+PyMODINIT_FUNC PyInit_Levenshtein_search(void)
 {
-	PyObject *m = PyModule_Create(&module_def);
+	return PyModule_Create(&module_def);
 }
 #else
 PyMODINIT_FUNC initLevenshtein_search(void)
