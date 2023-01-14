@@ -1,4 +1,3 @@
-build_script:
 environment:
   password:
     secure: f9xXcpXZkJpQhtqSdhI45A==
