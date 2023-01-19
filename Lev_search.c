@@ -579,10 +579,12 @@ static struct WordLList* generate_wordlist(struct WordSet* p_wordset, char* quer
 	struct WordLList* p_wordllist;
 
 	if ((p_wordset->nwords) > 0) {
+	    printf("Looking for word: ");
 		while (query_word[wordlength]!=0) {
+		    printf(query_word[wordlength]);
 			wordlength++;
 		}
-
+        printf("\n");
 		compare_letters(p_wordset->firstletter,0,0,0,maxdist,query_word,wordlength,NULL,p_wordlist);
 		p_wordllist = gen_wordllist(p_wordlist);
 	}
@@ -793,14 +795,14 @@ static PyObject* remove_string(PyObject *self, PyObject *args) {
 			w_idx = -1;
 		}
 		else {
-			//printf("Word found in dictionary\n");
+			printf("Word found in dictionary\n");
 			temp_wordllist = p_wordllist;
 			p_wordllist = p_wordllist->below;
 			free((void*)temp_wordllist);
 			free((void*)(p_wordllist->myword->myword));
 			free((void*)(p_wordllist->myword));
 			free((void*)p_wordllist);
-			//printf("Deleting word\n");
+			printf("Deleting word\n");
 			p_wordstats = (struct WordStats*)delete_Btree(p_wordset->firstletter,0,mystring,&b_issafe);
 			p_wordset->nwords -= p_wordstats->noccurrences;
 			w_idx = p_wordstats->idx;
