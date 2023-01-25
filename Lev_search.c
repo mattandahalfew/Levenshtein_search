@@ -341,6 +341,7 @@ static void* delete_Btree(struct Btree* this_letter, int q_x, char* p_word, char
 
 static void compare_same(struct Btree* curr_letter, int d_x, unsigned char lev_dist, char* query_letter, char* letterssofar, struct WordMatch* wordlist) {
 	char new_qletter = *query_letter;
+	printf("compare_same is looking up letter: %c\n", new_qletter);
 	void* p_nextletter = nextlett_lookup(curr_letter->root,new_qletter);
 
 	if (new_qletter==0) {
@@ -579,12 +580,9 @@ static struct WordLList* generate_wordlist(struct WordSet* p_wordset, char* quer
 	struct WordLList* p_wordllist;
 
 	if ((p_wordset->nwords) > 0) {
-	    printf("Looking for word: ");
 		while (query_word[wordlength]!=0) {
-		    printf(query_word[wordlength]);
 			wordlength++;
 		}
-        printf("\n");
 		compare_letters(p_wordset->firstletter,0,0,0,maxdist,query_word,wordlength,NULL,p_wordlist);
 		p_wordllist = gen_wordllist(p_wordlist);
 	}
@@ -613,7 +611,7 @@ static void rec_clear(struct Node* node) {
 			}
 			free(p_nextletter);
 		}
-		//printf("%c",node->myletter);
+		printf("%c",node->myletter);
 		free((void*)node);
 	}
 }
@@ -723,7 +721,7 @@ static PyObject* clear_wordset(PyObject *self, PyObject *args) {
 
 	if (!PyArg_ParseTuple(args, "i", &idx_ws))
 		Py_RETURN_NONE;
-	//printf("Deleting letters...\n");
+	printf("Deleting letters...\n");
 
 	p_wordset = get_pwordset(idx_ws);
 
@@ -830,9 +828,9 @@ static PyObject* lookup(PyObject *self, PyObject *args)
 	p_wordset = get_pwordset(idx_ws);
 	if (p_wordset!=NULL) {
 		mystring = (char*)pystring;
-		//printf("Lookup word: %s\n",mystring);
+		printf("Lookup word: %s\n",mystring);
 		p_wordllist = generate_wordlist(p_wordset,mystring,maxdist);
-		//printf("Number of words in doc: %i\n",p_wordset->nwords);
+		printf("Number of words in doc: %i\n",p_wordset->nwords);
 		return llist2pylist(p_wordllist,p_wordset->nwords,mystring);
 	}
 	else {
